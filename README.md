@@ -2,6 +2,13 @@
 
 # Un Posto al Sole per Home Assistant
 
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
+[![Release](https://img.shields.io/github/v/release/stefanodr/ha-upas)](https://github.com/stefanodr/ha-upas/releases)
+[![Validate](https://github.com/stefanodr/ha-upas/actions/workflows/validate.yaml/badge.svg)](https://github.com/stefanodr/ha-upas/actions/workflows/validate.yaml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+[![Apri Home Assistant e aggiungi il repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=stefanodr&repository=ha-upas&category=integration)
+
 Anticipazioni **giorno per giorno della settimana corrente e della successiva**, più le **ultime notizie dal web**, presentate in una card in **stile quotidiano**.
 
 ![Anteprima](docs/preview.png)
@@ -24,7 +31,14 @@ Anticipazioni **giorno per giorno della settimana corrente e della successiva**,
 Copia `custom_components/upas` in `<config>/custom_components/upas` e riavvia.
 
 ## La card
-La card viene registrata automaticamente (nessuna risorsa da aggiungere). Nella dashboard: **Aggiungi scheda → Manuale**:
+L'integrazione include la card `custom:upas-card` e prova a registrarla da sola. Su alcune installazioni questo non basta: se vedi l'errore **"Custom element doesn't exist: upas-card"**, aggiungi la risorsa a mano (una volta sola):
+
+1. Attiva la **Modalità avanzata** nel tuo profilo utente.
+2. Vai in *Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa*.
+3. URL `/upas_static/upas-card.js`, tipo **Modulo JavaScript**, poi *Crea*.
+4. Ricarica il browser con **Ctrl+F5** (nell'app companion: *Impostazioni → Companion app → Debug → Svuota cache frontend*).
+
+Poi, nella dashboard: **Aggiungi scheda → Manuale**:
 
 ```yaml
 type: custom:upas-card
@@ -33,7 +47,7 @@ max_news: 6                       # facoltativo
 show_news: true                   # facoltativo
 ```
 
-Se la card non compare, ricarica il browser con **Ctrl+F5** (o svuota la cache dell'app companion).
+Per verificare che il file sia servito, apri `http://IP-DI-HA:8123/upas_static/upas-card.js`: devi vedere il codice JavaScript.
 
 ## Entità
 | Entità | Stato | Attributi principali |
@@ -46,6 +60,9 @@ Se la card non compare, ricarica il browser con **Ctrl+F5** (o svuota la cache d
 
 Gli ID entità dipendono dalla lingua di Home Assistant (es. `sensor.un_posto_al_sole_puntata_di_oggi` in italiano): controllali in *Impostazioni → Entità*. Un esempio di notifica serale è in [`examples/automation_notifica.yaml`](examples/automation_notifica.yaml).
 
+## Esempio di dashboard
+Per una pagina a tutto schermo crea una vista di tipo **Pannello (1 scheda)** e inserisci la card; un esempio è in [`examples/dashboard.yaml`](examples/dashboard.yaml).
+
 ## Opzioni
 Intervallo di aggiornamento (60–1440 min, default 360), notizie on/off, numero massimo di notizie. Il salvataggio ricarica l'integrazione.
 
@@ -54,6 +71,21 @@ Intervallo di aggiornamento (60–1440 min, default 360), notizie on/off, numero
 - Notizie: Google News e Bing News (RSS).
 - Il parsing dipende dalla struttura delle pagine: se una fonte cambia, la card mostra "in arrivo" o nessuna notizia e nei log (livello debug) trovi il dettaglio. I parser stanno in `parsers.py` e sono coperti da test.
 - Gli estratti sono limitati a ~280 caratteri per giorno. Rispetta i termini d'uso delle fonti e non abbassare l'intervallo di aggiornamento senza motivo.
+
+## Problemi frequenti
+| Sintomo | Cosa fare |
+|---|---|
+| "Custom element doesn't exist: upas-card" | Aggiungi la risorsa a mano come descritto in [La card](#la-card), poi **Ctrl+F5**. |
+| "Prossima settimana: In arrivo" | Normale: le trame vengono pubblicate di norma il sabato precedente. |
+| Nessuna notizia | Controlla che l'opzione notizie sia attiva e guarda i log con livello debug (`custom_components.upas`). |
+| Trame vuote dopo un cambio di sito | Apri una [issue](https://github.com/stefanodr/ha-upas/issues) indicando l'articolo che non viene letto. |
+
+Per i log dettagliati:
+```yaml
+logger:
+  logs:
+    custom_components.upas: debug
+```
 
 ## Sviluppo
 ```bash
