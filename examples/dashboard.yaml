@@ -1,0 +1,5 @@
+# Vista di esempio (modalità sezioni o pannello): basta una sola card.
+type: custom:upas-card
+title: La Gazzetta di Posillipo
+max_news: 6
+show_news: true

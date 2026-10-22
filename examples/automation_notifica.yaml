@@ -1,0 +1,16 @@
+# Esempio: notifica ogni sera alle 20:30 con l'anticipazione della puntata di oggi.
+alias: UPAS - anticipazione di stasera
+trigger:
+  - platform: time
+    at: "20:30:00"
+condition:
+  - condition: not
+    conditions:
+      - condition: state
+        entity_id: sensor.un_posto_al_sole_puntata_di_oggi
+        state: "Nessuna puntata oggi"
+action:
+  - service: notify.notify
+    data:
+      title: "Stasera a Un Posto al Sole"
+      message: "{{ states('sensor.un_posto_al_sole_puntata_di_oggi') }}"

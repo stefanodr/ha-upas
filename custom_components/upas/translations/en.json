@@ -1,0 +1,46 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Un Posto al Sole",
+        "description": "Plot previews for the current and next week, plus news from the web.",
+        "data": {
+          "scan_interval": "Update interval (minutes)",
+          "news_enabled": "Show general news",
+          "max_news": "Maximum number of news items"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Un Posto al Sole options",
+        "data": {
+          "scan_interval": "Update interval (minutes)",
+          "news_enabled": "Show general news",
+          "max_news": "Maximum number of news items"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "edition": {
+        "name": "Edition"
+      },
+      "today": {
+        "name": "Today's episode"
+      },
+      "this_week": {
+        "name": "This week"
+      },
+      "next_week": {
+        "name": "Next week"
+      },
+      "news": {
+        "name": "News"
+      }
+    }
+  }
+}

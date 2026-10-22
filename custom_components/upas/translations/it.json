@@ -1,0 +1,36 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Un Posto al Sole",
+        "description": "Anticipazioni della settimana corrente e successiva, più le notizie dal web.",
+        "data": {
+          "scan_interval": "Intervallo di aggiornamento (minuti)",
+          "news_enabled": "Mostra notizie generali",
+          "max_news": "Numero massimo di notizie"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni Un Posto al Sole",
+        "data": {
+          "scan_interval": "Intervallo di aggiornamento (minuti)",
+          "news_enabled": "Mostra notizie generali",
+          "max_news": "Numero massimo di notizie"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "edition": { "name": "Edizione" },
+      "today": { "name": "Puntata di oggi" },
+      "this_week": { "name": "Questa settimana" },
+      "next_week": { "name": "Prossima settimana" },
+      "news": { "name": "Notizie" }
+    }
+  }
+}
