@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+- La risorsa della card viene aggiunta automaticamente alle risorse Lovelace (modalità storage).
+- Nuova opzione `theme` della card: `light` (default), `dark`, `auto`.
+- File della card scritto in ASCII (sequenze `\u`), nessun problema di codifica.
+
 ## 0.2.0
 - Trame giorno per giorno della settimana corrente e della successiva (fonte: TV Sorrisi e Canzoni).
 - Notizie generali dal web da due feed RSS (Google News e Bing News: titolo, testata, data), unite e deduplicate.

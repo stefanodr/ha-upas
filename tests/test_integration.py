@@ -122,3 +122,25 @@ async def test_config_flow_single_instance(hass: HomeAssistant, aioclient_mock) 
     await hass.async_block_till_done()
     again = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
     assert again["type"] == "abort"
+
+
+@freeze_time("2026-10-22 12:00:00+02:00")
+async def test_card_resource_registered_once(hass: HomeAssistant, aioclient_mock) -> None:
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    _mock(aioclient_mock)
+    entry = _entry()
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    items = hass.data[LOVELACE_DATA].resources.async_items()
+    mine = [i for i in items if i["url"].startswith("/upas_static/upas-card.js")]
+    assert len(mine) == 1 and mine[0]["type"] == "module"
+
+    # una risorsa con versione vecchia viene aggiornata, non duplicata
+    from custom_components.upas import _async_ensure_resource
+
+    await hass.data[LOVELACE_DATA].resources.async_update_item(mine[0]["id"], {"res_type": "module", "url": "/upas_static/upas-card.js?v=0.0.1"})
+    await _async_ensure_resource(hass, "/upas_static/upas-card.js?v=9.9.9")
+    items = [i for i in hass.data[LOVELACE_DATA].resources.async_items() if i["url"].startswith("/upas_static/")]
+    assert len(items) == 1 and items[0]["url"].endswith("v=9.9.9")

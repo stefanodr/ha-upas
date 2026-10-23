@@ -31,7 +31,9 @@ Anticipazioni **giorno per giorno della settimana corrente e della successiva**,
 Copia `custom_components/upas` in `<config>/custom_components/upas` e riavvia.
 
 ## La card
-L'integrazione include la card `custom:upas-card` e prova a registrarla da sola. Su alcune installazioni questo non basta: se vedi l'errore **"Custom element doesn't exist: upas-card"**, aggiungi la risorsa a mano (una volta sola):
+L'integrazione include la card `custom:upas-card` e **la registra da sola** tra le risorse della dashboard (modalità storage). Dopo l'installazione riavvia Home Assistant e ricarica il browser con Ctrl+F5.
+
+Se usi dashboard in **modalità YAML**, o vedi l'errore **"Custom element doesn't exist: upas-card"**, aggiungi la risorsa a mano (una volta sola):
 
 1. Attiva la **Modalità avanzata** nel tuo profilo utente.
 2. Vai in *Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa*.
@@ -45,7 +47,10 @@ type: custom:upas-card
 title: La Gazzetta di Posillipo   # facoltativo
 max_news: 6                       # facoltativo
 show_news: true                   # facoltativo
+theme: light                      # facoltativo: light (default), dark, auto
 ```
+
+**Tema:** `light` (carta chiara, come nell'anteprima) è il default; `dark` forza lo stile scuro; `auto` segue il tema di Home Assistant.
 
 Per verificare che il file sia servito, apri `http://IP-DI-HA:8123/upas_static/upas-card.js`: devi vedere il codice JavaScript.
 

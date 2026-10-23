@@ -3,7 +3,7 @@
   "name": "Un Posto al Sole",
   "codeowners": ["@stefanodr"],
   "config_flow": true,
-  "dependencies": ["frontend", "http"],
+  "dependencies": ["frontend", "http", "lovelace"],
   "documentation": "https://github.com/stefanodr/ha-upas",
   "integration_type": "service",
   "iot_class": "cloud_polling",
@@ -11,5 +11,5 @@
   "loggers": ["custom_components.upas"],
   "requirements": ["beautifulsoup4>=4.12.3"],
   "single_config_entry": true,
-  "version": "0.2.0"
+  "version": "0.2.1"
 }

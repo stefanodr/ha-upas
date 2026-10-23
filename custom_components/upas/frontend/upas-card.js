@@ -1,4 +1,4 @@
-/* Un Posto al Sole – card Lovelace in stile quotidiano.
+/* Un Posto al Sole \u2013 card Lovelace in stile quotidiano.
  * Servita automaticamente dall'integrazione `upas` (nessuna risorsa da aggiungere a mano).
  *
  * Uso:
@@ -6,9 +6,10 @@
  *   title: La Gazzetta di Posillipo   # facoltativo
  *   max_news: 6                       # facoltativo
  *   show_news: true                   # facoltativo
+ *   theme: light                      # facoltativo: light (default), dark, auto (segue Home Assistant)
  *   entity: sensor.xxx                # facoltativo: trovato da solo
  */
-const UPAS_VERSION = "0.2.0";
+const UPAS_VERSION = "0.2.1";
 
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -18,7 +19,7 @@ const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? esc(u) : "#");
 const isoLocal = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-const WEEKDAY = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"];
+const WEEKDAY = ["domenica", "luned\u00ec", "marted\u00ec", "mercoled\u00ec", "gioved\u00ec", "venerd\u00ec", "sabato"];
 const MONTH = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
 
 const parseIso = (iso) => {
@@ -42,7 +43,7 @@ const relTime = (iso) => {
   return d === 1 ? "ieri" : `${d} giorni fa`;
 };
 
-// Il titolo "di giornale" è la prima frase dell'estratto, il resto è il sommario.
+// Il titolo "di giornale" \u00e8 la prima frase dell'estratto, il resto \u00e8 il sommario.
 const splitHeadline = (text) => {
   const m = /^(.{25,170}?[.!?])\s+(.*)$/.exec(text || "");
   return m ? { head: m[1], body: m[2] } : { head: text || "", body: "" };
@@ -100,7 +101,7 @@ a { color: var(--accent); }
 
 class UpasCard extends HTMLElement {
   setConfig(config) {
-    this._config = { show_news: true, max_news: 6, title: "La Gazzetta di Posillipo", ...config };
+    this._config = { show_news: true, max_news: 6, theme: "light", title: "La Gazzetta di Posillipo", ...config };
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this._render();
   }
@@ -108,11 +109,18 @@ class UpasCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     const ent = this._findEntity();
-    const sig = ent ? `${ent.state}|${ent.last_updated}|${isoLocal(new Date())}|${hass.themes?.darkMode}` : "none";
+    const sig = ent ? `${ent.state}|${ent.last_updated}|${isoLocal(new Date())}|${this._isDark()}` : "none";
     if (sig !== this._sig) {
       this._sig = sig;
       this._render();
     }
+  }
+
+  _isDark() {
+    const t = String(this._config?.theme || "light").toLowerCase();
+    if (t === "dark") return true;
+    if (t === "auto") return !!this._hass?.themes?.darkMode;
+    return false;
   }
 
   getCardSize() {
@@ -120,7 +128,7 @@ class UpasCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { title: "La Gazzetta di Posillipo", max_news: 6 };
+    return { title: "La Gazzetta di Posillipo", max_news: 6, theme: "light" };
   }
 
   _findEntity() {
@@ -133,17 +141,17 @@ class UpasCard extends HTMLElement {
   _dayItem(day, todayIso) {
     const l = dayLabel(day.date);
     const cls = day.date === todayIso ? "today" : day.date < todayIso ? "past" : "";
-    return `<div class="item ${cls}"><div class="d"><b>${esc(l.wd)}</b> ${l.num} ${esc(l.mon)}${day.date === todayIso ? " · oggi in onda" : ""}</div><p>${esc(day.excerpt)}</p></div>`;
+    return `<div class="item ${cls}"><div class="d"><b>${esc(l.wd)}</b> ${l.num} ${esc(l.mon)}${day.date === todayIso ? " \u00b7 oggi in onda" : ""}</div><p>${esc(day.excerpt)}</p></div>`;
   }
 
   _weekColumn(title, week, todayIso) {
     if (!week) return "";
     let body;
     if (!week.available) {
-      body = `<div class="empty">La redazione è al lavoro: queste trame vengono pubblicate di norma il sabato precedente.</div>`;
+      body = `<div class="empty">La redazione \u00e8 al lavoro: queste trame vengono pubblicate di norma il sabato precedente.</div>`;
     } else {
       body = week.days.map((d) => this._dayItem(d, todayIso)).join("") +
-        `<div class="more">Testo integrale su <a href="${safeUrl(week.url)}" target="_blank" rel="noopener noreferrer">${esc(week.source)}</a> →</div>`;
+        `<div class="more">Testo integrale su <a href="${safeUrl(week.url)}" target="_blank" rel="noopener noreferrer">${esc(week.source)}</a> \u2192</div>`;
     }
     return `<section class="col"><h3 class="sect">${esc(title)}<small>${esc(week.label)}</small></h3>${body}</section>`;
   }
@@ -157,10 +165,10 @@ class UpasCard extends HTMLElement {
     if (!pick) return "";
     const { head, body } = splitHeadline(pick.excerpt);
     const l = dayLabel(pick.date);
-    const kicker = today ? "Stasera in onda" : `Prossima puntata · ${l.wd} ${l.num} ${l.mon}`;
+    const kicker = today ? "Stasera in onda" : `Prossima puntata \u00b7 ${l.wd} ${l.num} ${l.mon}`;
     const week = src(pick);
     return `<section class="lead"><div class="kicker">${esc(kicker)}</div><h2>${esc(head)}</h2>${body ? `<p>${esc(body)}</p>` : ""}
-      <div class="more"><a href="${safeUrl(week?.url)}" target="_blank" rel="noopener noreferrer">Continua su ${esc(week?.source || "la fonte")}</a> →</div></section>`;
+      <div class="more"><a href="${safeUrl(week?.url)}" target="_blank" rel="noopener noreferrer">Continua su ${esc(week?.source || "la fonte")}</a> \u2192</div></section>`;
   }
 
   _news(attrs) {
@@ -168,7 +176,7 @@ class UpasCard extends HTMLElement {
     const items = (attrs.news || []).slice(0, Number(this._config.max_news) || 6);
     const body = items.length
       ? items.map((n) => `<div class="item"><a class="h" href="${safeUrl(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a>
-          <div class="m">${esc(n.source)}${n.source && n.published ? " · " : ""}${esc(relTime(n.published))}</div></div>`).join("")
+          <div class="m">${esc(n.source)}${n.source && n.published ? " \u00b7 " : ""}${esc(relTime(n.published))}</div></div>`).join("")
       : `<div class="empty">Nessuna notizia disponibile al momento.</div>`;
     return `<section class="news"><h3 class="sect">Dal web<small>ultime notizie</small></h3><div class="nl">${body}</div></section>`;
   }
@@ -180,22 +188,22 @@ class UpasCard extends HTMLElement {
     if (!this._hass) {
       inner = "";
     } else if (!ent) {
-      inner = `<div class="err">Entità dell'integrazione <b>Un Posto al Sole</b> non trovata. Verifica che l'integrazione sia configurata.</div>`;
+      inner = `<div class="err">Entit\u00e0 dell'integrazione <b>Un Posto al Sole</b> non trovata. Verifica che l'integrazione sia configurata.</div>`;
     } else {
       const a = ent.attributes || {};
       const now = new Date();
       const todayIso = isoLocal(now);
       const upd = ent.state && ent.state !== "unknown" && ent.state !== "unavailable" ? new Date(ent.state) : null;
-      const updTxt = upd && !Number.isNaN(upd.getTime()) ? upd.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "—";
+      const updTxt = upd && !Number.isNaN(upd.getTime()) ? upd.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "\u2014";
       inner = `
-        <header class="mast"><div class="title"><span class="sun">☀</span> ${esc(this._config.title)}</div></header>
+        <header class="mast"><div class="title"><span class="sun">\u2600</span> ${esc(this._config.title)}</div></header>
         <div class="bar"><span>${esc(WEEKDAY[now.getDay()])} ${now.getDate()} ${esc(MONTH[now.getMonth()])} ${now.getFullYear()}</span><span>Edizione online</span><span>Aggiornata alle ${esc(updTxt)}</span></div>
         ${this._lead(a, todayIso)}
         <div class="cols">${this._weekColumn("Questa settimana", a.this_week, todayIso)}${this._weekColumn("Settimana prossima", a.next_week, todayIso)}</div>
         ${this._news(a)}
-        <div class="foot">Trame: TV Sorrisi e Canzoni · Notizie: Google News e Bing News. Estratti a scopo informativo: il testo integrale è sulle fonti originali. Progetto indipendente, non affiliato a Rai né ai produttori di «Un posto al sole».</div>`;
+        <div class="foot">Trame: TV Sorrisi e Canzoni \u00b7 Notizie: Google News e Bing News. Estratti a scopo informativo: il testo integrale \u00e8 sulle fonti originali. Progetto indipendente, non affiliato a Rai n\u00e9 ai produttori di \u00abUn posto al sole\u00bb.</div>`;
     }
-    const dark = !!this._hass?.themes?.darkMode;
+    const dark = this._isDark();
     this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div class="paper ${dark ? "dark" : ""}">${inner}</div></ha-card>`;
   }
 }

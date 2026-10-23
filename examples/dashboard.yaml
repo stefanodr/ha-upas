@@ -3,3 +3,4 @@ type: custom:upas-card
 title: La Gazzetta di Posillipo
 max_news: 6
 show_news: true
+theme: light   # light | dark | auto
