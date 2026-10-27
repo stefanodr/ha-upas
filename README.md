@@ -20,7 +20,7 @@ Anticipazioni **giorno per giorno della settimana corrente e della successiva**,
 - Raccoglie titoli, testata e data delle notizie da due feed RSS (Google News e Bing News), uniti e senza doppioni. Se una fonte non risponde, usa l'altra.
 - Mostra estratti brevi con link alla fonte: il testo integrale resta sul sito originale.
 - Nel weekend la "settimana corrente" diventa quella che inizia lunedì, così sai già cosa arriva.
-- Se la settimana successiva non è ancora stata pubblicata, la card lo dice ("in arrivo").
+- Se la settimana successiva non è ancora stata pubblicata, la card mostra la sezione **In primo piano**: prossima puntata, personaggi della settimana e dove guardarla. Appena le trame escono, torna la colonna con i giorni.
 
 ## Installazione con HACS
 1. HACS → ⋮ → **Repository personalizzati** → incolla `https://github.com/stefanodr/ha-upas`, categoria **Integrazione**.
@@ -48,6 +48,7 @@ title: La Gazzetta di Posillipo   # facoltativo
 max_news: 6                       # facoltativo
 show_news: true                   # facoltativo
 theme: light                      # facoltativo: light (default), dark, auto
+show_highlights: true             # facoltativo: "In primo piano" quando la settimana prossima non e' ancora pubblicata
 ```
 
 **Tema:** `light` (carta chiara, come nell'anteprima) è il default; `dark` forza lo stile scuro; `auto` segue il tema di Home Assistant.

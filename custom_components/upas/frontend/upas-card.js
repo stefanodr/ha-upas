@@ -6,10 +6,11 @@
  *   title: La Gazzetta di Posillipo   # facoltativo
  *   max_news: 6                       # facoltativo
  *   show_news: true                   # facoltativo
+ *   show_highlights: true             # facoltativo: sezione "In primo piano" quando la settimana prossima non e' ancora pubblicata
  *   theme: light                      # facoltativo: light (default), dark, auto (segue Home Assistant)
  *   entity: sensor.xxx                # facoltativo: trovato da solo
  */
-const UPAS_VERSION = "0.2.1";
+const UPAS_VERSION = "0.3.0";
 
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -49,6 +50,38 @@ const splitHeadline = (text) => {
   return m ? { head: m[1], body: m[2] } : { head: text || "", body: "" };
 };
 
+// ---- "In primo piano": contenuti sempre disponibili, anche senza le trame della settimana dopo.
+const STOP_NAMES = new Set(["Caff\u00e8", "Vulcano", "Palazzo", "Palladini", "Napoli", "Posillipo", "Rai", "Italia", "Vesuvio", "Roma", "Milano", "Sorrisi"]);
+
+// Personaggi citati nelle trame: nomi propri trovati a met\u00e0 frase, poi contati su quanti giorni compaiono.
+const featuredNames = (days) => {
+  const mid = /(?<=[a-z\u00e0-\u00f9,;:] )([A-Z\u00c0-\u00dd][a-z\u00e0-\u00ff']{2,})/g;
+  const names = new Set();
+  for (const d of days) {
+    for (const m of (d.excerpt || "").matchAll(mid)) if (!STOP_NAMES.has(m[1])) names.add(m[1]);
+  }
+  const rows = [];
+  for (const n of names) {
+    const re = new RegExp(`(^|[^A-Za-z\u00e0-\u00ff])${n}([^A-Za-z\u00e0-\u00ff]|$)`);
+    rows.push([n, days.filter((d) => re.test(d.excerpt || "")).length]);
+  }
+  return rows.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "it")).slice(0, 6);
+};
+
+// Prossima puntata: dal luned\u00ec al venerd\u00ec in prima serata; dopo le 21:30 si guarda al giorno dopo.
+const nextAir = (now) => {
+  const day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const late = now.getHours() > 21 || (now.getHours() === 21 && now.getMinutes() >= 30);
+  const t = new Date(day0);
+  const weekend = (x) => x.getDay() === 0 || x.getDay() === 6;
+  if (weekend(t) || late) {
+    do { t.setDate(t.getDate() + 1); } while (weekend(t));
+  }
+  const diff = Math.round((t - day0) / 86400000);
+  const label = diff === 0 ? "Stasera" : diff === 1 ? "Domani" : WEEKDAY[t.getDay()].replace(/^./, (c) => c.toUpperCase());
+  return { label, wd: WEEKDAY[t.getDay()], num: t.getDate(), mon: MONTH[t.getMonth()] };
+};
+
 const STYLE = `
 :host { display: block; }
 ha-card { overflow: hidden; }
@@ -86,6 +119,9 @@ ha-card { overflow: hidden; }
 .item.today .d b { color: var(--accent); }
 .item.past { opacity: .55; }
 .item p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.45; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0 !important; }
+.chips span { border: 1px solid var(--rule); padding: 1px 8px; font-size: 12.5px; border-radius: 2px; }
+.chips i { color: var(--muted); font-style: normal; font-size: 11px; margin-left: 4px; }
 .more { font-size: 12px; font-style: italic; margin-top: 6px; }
 .empty { font-style: italic; color: var(--muted); font-size: 13.5px; line-height: 1.45; padding: 6px 0; }
 .news { margin-bottom: 12px; }
@@ -101,7 +137,7 @@ a { color: var(--accent); }
 
 class UpasCard extends HTMLElement {
   setConfig(config) {
-    this._config = { show_news: true, max_news: 6, theme: "light", title: "La Gazzetta di Posillipo", ...config };
+    this._config = { show_news: true, max_news: 6, theme: "light", show_highlights: true, title: "La Gazzetta di Posillipo", ...config };
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this._render();
   }
@@ -156,6 +192,22 @@ class UpasCard extends HTMLElement {
     return `<section class="col"><h3 class="sect">${esc(title)}<small>${esc(week.label)}</small></h3>${body}</section>`;
   }
 
+  _highlights(attrs) {
+    const days = [...(attrs.this_week?.days || []), ...(attrs.next_week?.days || [])];
+    const nx = nextAir(new Date());
+    const names = featuredNames(days);
+    const next = attrs.next_week;
+    const range = next?.label ? `Le trame del ${esc(next.label)} saranno pubblicate di norma il sabato.` : "Le nuove trame vengono pubblicate di norma il sabato.";
+    const chips = names.length
+      ? `<div class="item"><div class="d"><b>Personaggi della settimana</b></div><p class="chips">${names.map(([n, c]) => `<span>${esc(n)}<i>${c} ${c === 1 ? "giorno" : "giorni"}</i></span>`).join("")}</p></div>`
+      : "";
+    return `<section class="col"><h3 class="sect">In primo piano<small>in attesa delle nuove trame</small></h3>
+      <div class="item"><div class="d"><b>Prossima puntata</b></div><p>${esc(nx.label)}, ${esc(nx.wd)} ${nx.num} ${esc(nx.mon)} \u00b7 Rai 3, in prima serata (circa 20:50), salvo variazioni di palinsesto.</p></div>
+      ${chips}
+      <div class="item"><div class="d"><b>Dove guardarla</b></div><p>In diretta su Rai 3 dal luned\u00ec al venerd\u00ec; puntate e repliche su <a href="https://www.raiplay.it/programmi/unpostoalsole" target="_blank" rel="noopener noreferrer">RaiPlay</a>.</p></div>
+      <div class="more">${range}</div></section>`;
+  }
+
   _lead(attrs, todayIso) {
     const all = [...(attrs.this_week?.days || []), ...(attrs.next_week?.days || [])];
     const src = (d) => (attrs.this_week?.days || []).includes(d) ? attrs.this_week : attrs.next_week;
@@ -199,7 +251,7 @@ class UpasCard extends HTMLElement {
         <header class="mast"><div class="title"><span class="sun">\u2600</span> ${esc(this._config.title)}</div></header>
         <div class="bar"><span>${esc(WEEKDAY[now.getDay()])} ${now.getDate()} ${esc(MONTH[now.getMonth()])} ${now.getFullYear()}</span><span>Edizione online</span><span>Aggiornata alle ${esc(updTxt)}</span></div>
         ${this._lead(a, todayIso)}
-        <div class="cols">${this._weekColumn("Questa settimana", a.this_week, todayIso)}${this._weekColumn("Settimana prossima", a.next_week, todayIso)}</div>
+        <div class="cols">${this._weekColumn("Questa settimana", a.this_week, todayIso)}${a.next_week?.available || this._config.show_highlights === false ? this._weekColumn("Settimana prossima", a.next_week, todayIso) : this._highlights(a)}</div>
         ${this._news(a)}
         <div class="foot">Trame: TV Sorrisi e Canzoni \u00b7 Notizie: Google News e Bing News. Estratti a scopo informativo: il testo integrale \u00e8 sulle fonti originali. Progetto indipendente, non affiliato a Rai n\u00e9 ai produttori di \u00abUn posto al sole\u00bb.</div>`;
     }

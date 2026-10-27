@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+- Nuova sezione **In primo piano** al posto della colonna "Settimana prossima" quando le trame non sono ancora state pubblicate (di norma fino al sabato): prossima puntata (data e orario), personaggi della settimana, dove guardarla (Rai 3 e RaiPlay).
+- Quando le trame della settimana successiva sono disponibili, la colonna torna a mostrarle.
+- Nuova opzione `show_highlights` della card (default `true`; con `false` si vede sempre la colonna della settimana prossima).
+
 ## 0.2.1
 - La risorsa della card viene aggiunta automaticamente alle risorse Lovelace (modalità storage).
 - Nuova opzione `theme` della card: `light` (default), `dark`, `auto`.
