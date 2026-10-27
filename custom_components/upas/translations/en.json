@@ -40,6 +40,9 @@
       },
       "news": {
         "name": "News"
+      },
+      "trivia": {
+        "name": "Did you know"
       }
     }
   }

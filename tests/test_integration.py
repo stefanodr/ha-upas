@@ -46,7 +46,7 @@ async def test_setup_and_sensors(hass: HomeAssistant, aioclient_mock) -> None:
 
     reg = er.async_get(hass)
     ids = {e.unique_id.split("_", 1)[1]: e.entity_id for e in er.async_entries_for_config_entry(reg, entry.entry_id)}
-    assert set(ids) == {"edition", "today", "this_week", "next_week", "news"}
+    assert set(ids) == {"edition", "today", "this_week", "next_week", "news", "trivia"}
 
     this_week = hass.states.get(ids["this_week"])
     assert this_week.state == "19–23 ottobre"
@@ -57,6 +57,10 @@ async def test_setup_and_sensors(hass: HomeAssistant, aioclient_mock) -> None:
     today = hass.states.get(ids["today"])
     assert today.attributes["date"] == "2026-10-22"
     assert "Eduardo" in today.state
+
+    trivia = hass.states.get(ids["trivia"])
+    assert trivia.attributes["url"].startswith("https://") and trivia.attributes["source"]
+    assert len(hass.states.get(ids["edition"]).attributes["trivia"]) >= 20
 
     edition = hass.states.get(ids["edition"])
     assert edition.attributes["upas_role"] == "edition"

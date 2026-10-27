@@ -26,11 +26,24 @@
   },
   "entity": {
     "sensor": {
-      "edition": { "name": "Edizione" },
-      "today": { "name": "Puntata di oggi" },
-      "this_week": { "name": "Questa settimana" },
-      "next_week": { "name": "Prossima settimana" },
-      "news": { "name": "Notizie" }
+      "edition": {
+        "name": "Edizione"
+      },
+      "today": {
+        "name": "Puntata di oggi"
+      },
+      "this_week": {
+        "name": "Questa settimana"
+      },
+      "next_week": {
+        "name": "Prossima settimana"
+      },
+      "news": {
+        "name": "Notizie"
+      },
+      "trivia": {
+        "name": "Lo sapevi che"
+      }
     }
   }
 }

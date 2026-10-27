@@ -27,6 +27,7 @@ from .const import (
     REQUEST_TIMEOUT,
     USER_AGENT,
 )
+from .trivia import load_trivia
 from .parsers import (
     empty_week,
     extract_week_links,
@@ -45,6 +46,7 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Aggiorna periodicamente l'"edizione" del quotidiano."""
 
     config_entry: ConfigEntry
+    trivia: list[dict[str, Any]]
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         minutes = int(entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
@@ -55,6 +57,10 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             name=DOMAIN,
             update_interval=timedelta(minutes=minutes),
         )
+
+    async def _async_setup(self) -> None:
+        """Carica una volta sola le pillole "Lo sapevi che?"."""
+        self.trivia = await self.hass.async_add_executor_job(load_trivia)
 
     # ------------------------------------------------------------- HTTP
     async def _get(self, url: str) -> str | None:
@@ -148,4 +154,5 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "updated": dt_util.utcnow().isoformat(),
             "weeks": weeks,
             "news": news,
+            "trivia": self.trivia,
         }

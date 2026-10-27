@@ -16,6 +16,7 @@ Anticipazioni **giorno per giorno della settimana corrente e della successiva**,
 > Progetto indipendente della community, non affiliato a Rai né ai produttori di «Un posto al sole».
 
 ## Cosa fa
+- **Lo sapevi che?**: una pillola al giorno con aneddoti sulla storia della serie, sempre con la fonte e un pulsante per sfogliare le altre.
 - Legge le trame settimanali pubblicate da TV Sorrisi e Canzoni (di norma il sabato per la settimana dopo) e le divide per giorno.
 - Raccoglie titoli, testata e data delle notizie da due feed RSS (Google News e Bing News), uniti e senza doppioni. Se una fonte non risponde, usa l'altra.
 - Mostra estratti brevi con link alla fonte: il testo integrale resta sul sito originale.
@@ -48,6 +49,7 @@ title: La Gazzetta di Posillipo   # facoltativo
 max_news: 6                       # facoltativo
 show_news: true                   # facoltativo
 theme: light                      # facoltativo: light (default), dark, auto
+show_trivia: true                 # facoltativo: sezione "Lo sapevi che?"
 show_highlights: true             # facoltativo: "In primo piano" quando la settimana prossima non e' ancora pubblicata
 ```
 
@@ -63,6 +65,7 @@ Per verificare che il file sia servito, apri `http://IP-DI-HA:8123/upas_static/u
 | Questa settimana | es. `19–23 ottobre` | `days[]`, `url`, `source`, `published` |
 | Prossima settimana | es. `26–30 ottobre` oppure `In arrivo` | come sopra |
 | Notizie | numero di notizie | `articles[]` (titolo, testata, url, data) |
+| Lo sapevi che | testo della pillola del giorno | `year`, `title`, `text`, `source`, `url` |
 
 Gli ID entità dipendono dalla lingua di Home Assistant (es. `sensor.un_posto_al_sole_puntata_di_oggi` in italiano): controllali in *Impostazioni → Entità*. Un esempio di notifica serale è in [`examples/automation_notifica.yaml`](examples/automation_notifica.yaml).
 

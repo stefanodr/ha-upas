@@ -7,10 +7,11 @@
  *   max_news: 6                       # facoltativo
  *   show_news: true                   # facoltativo
  *   show_highlights: true             # facoltativo: sezione "In primo piano" quando la settimana prossima non e' ancora pubblicata
+ *   show_trivia: true                 # facoltativo: sezione "Lo sapevi che?"
  *   theme: light                      # facoltativo: light (default), dark, auto (segue Home Assistant)
  *   entity: sensor.xxx                # facoltativo: trovato da solo
  */
-const UPAS_VERSION = "0.3.0";
+const UPAS_VERSION = "0.4.0";
 
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -82,6 +83,16 @@ const nextAir = (now) => {
   return { label, wd: WEEKDAY[t.getDay()], num: t.getDate(), mon: MONTH[t.getMonth()] };
 };
 
+// Pillola "Lo sapevi che?": ricorrenza (campo "on" = MM-DD) oppure rotazione giornaliera. Stessa formula del sensore.
+const pickTrivia = (items, now, skip) => {
+  if (!items || !items.length) return null;
+  const mmdd = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const ann = items.findIndex((t) => t.on === mmdd);
+  const dayNum = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000);
+  const idx = ((ann >= 0 ? ann : dayNum % items.length) + skip) % items.length;
+  return { item: items[idx], pos: idx + 1, total: items.length };
+};
+
 const STYLE = `
 :host { display: block; }
 ha-card { overflow: hidden; }
@@ -122,6 +133,14 @@ ha-card { overflow: hidden; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0 !important; }
 .chips span { border: 1px solid var(--rule); padding: 1px 8px; font-size: 12.5px; border-radius: 2px; }
 .chips i { color: var(--muted); font-style: normal; font-size: 11px; margin-left: 4px; }
+.trivia { border: 1px solid var(--rule); border-top: 3px double var(--rule); background: var(--soft); padding: 10px 14px 8px; margin-bottom: 14px; display: flex; gap: 14px; align-items: flex-start; }
+.trivia .yr { font-size: 30px; font-weight: 700; color: var(--accent); line-height: 1; min-width: 64px; text-align: center; padding-top: 4px; }
+.trivia .yr.q { font-size: 38px; }
+.trivia .tb { min-width: 0; flex: 1; }
+.trivia .tt { font-weight: 700; font-size: 15px; margin: 2px 0 3px; }
+.trivia p { margin: 0; font-size: 14px; line-height: 1.5; }
+.trivia .tf { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); margin-top: 6px; font-style: italic; }
+.trivia button { font: inherit; font-style: italic; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
 .more { font-size: 12px; font-style: italic; margin-top: 6px; }
 .empty { font-style: italic; color: var(--muted); font-size: 13.5px; line-height: 1.45; padding: 6px 0; }
 .news { margin-bottom: 12px; }
@@ -137,7 +156,7 @@ a { color: var(--accent); }
 
 class UpasCard extends HTMLElement {
   setConfig(config) {
-    this._config = { show_news: true, max_news: 6, theme: "light", show_highlights: true, title: "La Gazzetta di Posillipo", ...config };
+    this._config = { show_news: true, max_news: 6, theme: "light", show_highlights: true, show_trivia: true, title: "La Gazzetta di Posillipo", ...config };
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this._render();
   }
@@ -223,6 +242,16 @@ class UpasCard extends HTMLElement {
       <div class="more"><a href="${safeUrl(week?.url)}" target="_blank" rel="noopener noreferrer">Continua su ${esc(week?.source || "la fonte")}</a> \u2192</div></section>`;
   }
 
+  _trivia(attrs) {
+    if (this._config.show_trivia === false) return "";
+    const pick = pickTrivia(attrs.trivia, new Date(), this._skip || 0);
+    if (!pick) return "";
+    const t = pick.item;
+    const year = t.year ? `<div class="yr">${esc(t.year)}</div>` : `<div class="yr q">?</div>`;
+    return `<section class="trivia">${year}<div class="tb"><div class="kicker">Lo sapevi che?</div><div class="tt">${esc(t.title)}</div><p>${esc(t.text)}</p>
+      <div class="tf"><span>Fonte: <a href="${safeUrl(t.url)}" target="_blank" rel="noopener noreferrer">${esc(t.source)}</a></span><span>${pick.pos}/${pick.total} \u00b7 <button type="button" class="tbtn">un'altra pillola \u2192</button></span></div></div></section>`;
+  }
+
   _news(attrs) {
     if (!this._config.show_news) return "";
     const items = (attrs.news || []).slice(0, Number(this._config.max_news) || 6);
@@ -252,11 +281,14 @@ class UpasCard extends HTMLElement {
         <div class="bar"><span>${esc(WEEKDAY[now.getDay()])} ${now.getDate()} ${esc(MONTH[now.getMonth()])} ${now.getFullYear()}</span><span>Edizione online</span><span>Aggiornata alle ${esc(updTxt)}</span></div>
         ${this._lead(a, todayIso)}
         <div class="cols">${this._weekColumn("Questa settimana", a.this_week, todayIso)}${a.next_week?.available || this._config.show_highlights === false ? this._weekColumn("Settimana prossima", a.next_week, todayIso) : this._highlights(a)}</div>
+        ${this._trivia(a)}
         ${this._news(a)}
         <div class="foot">Trame: TV Sorrisi e Canzoni \u00b7 Notizie: Google News e Bing News. Estratti a scopo informativo: il testo integrale \u00e8 sulle fonti originali. Progetto indipendente, non affiliato a Rai n\u00e9 ai produttori di \u00abUn posto al sole\u00bb.</div>`;
     }
     const dark = this._isDark();
     this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div class="paper ${dark ? "dark" : ""}">${inner}</div></ha-card>`;
+    const btn = this.shadowRoot.querySelector(".tbtn");
+    if (btn) btn.addEventListener("click", () => { this._skip = (this._skip || 0) + 1; this._render(); });
   }
 }
 
