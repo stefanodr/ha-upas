@@ -11,7 +11,7 @@
 
 Anticipazioni **giorno per giorno della settimana corrente e della successiva**, più le **ultime notizie dal web**, presentate in una card in **stile quotidiano**.
 
-![Anteprima](docs/preview.png)
+![Anteprima](docs/preview-0.5.png)
 
 > Progetto indipendente della community, non affiliato a Rai né ai produttori di «Un posto al sole».
 
