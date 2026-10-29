@@ -7,11 +7,12 @@
  *   max_news: 6                       # facoltativo
  *   show_news: true                   # facoltativo
  *   show_highlights: true             # facoltativo: sezione "In primo piano" quando la settimana prossima non e' ancora pubblicata
- *   show_trivia: true                 # facoltativo: sezione "Lo sapevi che?"
+ *   show_trivia: true                 # facoltativo: "Lo sapevi che?" e "Personaggio del giorno"
+ *   photos_path: /local/upas          # facoltativo: cartella locale con le tue foto <id>.jpg (vedi README)
  *   theme: light                      # facoltativo: light (default), dark, auto (segue Home Assistant)
  *   entity: sensor.xxx                # facoltativo: trovato da solo
  */
-const UPAS_VERSION = "0.4.0";
+const UPAS_VERSION = "0.5.0";
 
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -93,6 +94,22 @@ const pickTrivia = (items, now, skip) => {
   return { item: items[idx], pos: idx + 1, total: items.length };
 };
 
+// ---- "Lo sapevi che?" e "Personaggio del giorno"
+const dayNumber = (now) => Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000);
+
+// Personaggio del giorno: preferisce chi e' citato nella trama di oggi, altrimenti rotazione.
+const pickCharacter = (chars, todayText, now, skip) => {
+  if (!chars || !chars.length) return null;
+  const hit = (c) => (c.aliases || [c.name.split(" ")[0]]).some((a) => new RegExp(`(^|[^A-Za-z\u00e0-\u00ff])${a}([^A-Za-z\u00e0-\u00ff]|$)`).test(todayText || ""));
+  const inPlot = chars.map((c, i) => (hit(c) ? i : -1)).filter((i) => i >= 0);
+  const pool = inPlot.length ? inPlot : chars.map((_, i) => i);
+  const idx = pool[(dayNumber(now) + skip) % pool.length];
+  return { item: chars[idx], inPlot: inPlot.length > 0 && inPlot.includes(idx) };
+};
+
+const initials = (name) => name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+const safePhotoDir = (p) => (typeof p === "string" && /^\/(?!\/)[\w\-./]*$/.test(p) ? p.replace(/\/+$/, "") : "");
+
 const STYLE = `
 :host { display: block; }
 ha-card { overflow: hidden; }
@@ -141,6 +158,19 @@ ha-card { overflow: hidden; }
 .trivia p { margin: 0; font-size: 14px; line-height: 1.5; }
 .trivia .tf { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); margin-top: 6px; font-style: italic; }
 .trivia button { font: inherit; font-style: italic; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
+.tbox { border: 1px solid var(--rule); outline: 3px double var(--rule); outline-offset: 2px; padding: 12px 14px; margin: 0 0 18px 0; background: var(--soft); }
+.tbox .tx { margin: 6px 0 0; font-size: 14.5px; line-height: 1.5; }
+.tbox .yr { float: left; font-size: 2.1em; font-weight: 700; color: var(--accent); line-height: 1; padding: 2px 10px 0 0; }
+.tbox .src { font-size: 11.5px; color: var(--muted); margin-top: 8px; font-style: italic; }
+.btn { font: inherit; font-size: 12px; font-style: italic; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+.row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 22px; margin-bottom: 4px; }
+.char { display: flex; gap: 12px; align-items: flex-start; }
+.av { position: relative; flex: 0 0 64px; height: 76px; border: 1px solid var(--rule); background: var(--paper); display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 700; color: var(--accent); letter-spacing: .04em; overflow: hidden; }
+.av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.char .nm { font-size: 17px; font-weight: 700; line-height: 1.2; }
+.char .by { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+.char .an { font-style: italic; font-size: 13.5px; line-height: 1.45; margin: 6px 0 0; }
 .more { font-size: 12px; font-style: italic; margin-top: 6px; }
 .empty { font-style: italic; color: var(--muted); font-size: 13.5px; line-height: 1.45; padding: 6px 0; }
 .news { margin-bottom: 12px; }
@@ -252,6 +282,20 @@ class UpasCard extends HTMLElement {
       <div class="tf"><span>Fonte: <a href="${safeUrl(t.url)}" target="_blank" rel="noopener noreferrer">${esc(t.source)}</a></span><span>${pick.pos}/${pick.total} \u00b7 <button type="button" class="tbtn">un'altra pillola \u2192</button></span></div></div></section>`;
   }
 
+  _characterBox(attrs, todayIso) {
+    const todayText = [...(attrs.this_week?.days || []), ...(attrs.next_week?.days || [])].filter((d) => d.date === todayIso).map((d) => d.excerpt).join(" ");
+    const p = pickCharacter(attrs.characters, todayText, new Date(), this._cskip || 0);
+    if (!p) return "";
+    const c = p.item;
+    const dir = safePhotoDir(this._config.photos_path);
+    const img = dir ? `<img src="${esc(dir)}/${esc(c.photo || c.id)}.jpg" alt="" loading="lazy">` : "";
+    return `<section class="tbox"><div class="kicker">${p.inPlot ? "Nella puntata di oggi" : "Personaggio del giorno"}</div>
+      <div class="char"><div class="av">${esc(initials(c.name))}${img}</div><div>
+      <div class="nm">${esc(c.name)}</div><div class="by">interpretato da ${esc(c.actor)}</div>
+      <p class="tx">${esc(c.caption)}</p>${c.anecdote ? `<p class="an">\u00ab${esc(c.anecdote)}\u00bb</p>` : ""}</div></div>
+      <div class="src">Fonte: <a href="${safeUrl(c.url)}" target="_blank" rel="noopener noreferrer">${esc(c.source)}</a> \u00b7 <button class="btn" data-act="char">un altro personaggio \u2192</button></div></section>`;
+  }
+
   _news(attrs) {
     if (!this._config.show_news) return "";
     const items = (attrs.news || []).slice(0, Number(this._config.max_news) || 6);
@@ -282,11 +326,20 @@ class UpasCard extends HTMLElement {
         ${this._lead(a, todayIso)}
         <div class="cols">${this._weekColumn("Questa settimana", a.this_week, todayIso)}${a.next_week?.available || this._config.show_highlights === false ? this._weekColumn("Settimana prossima", a.next_week, todayIso) : this._highlights(a)}</div>
         ${this._trivia(a)}
+        ${this._config.show_trivia === false ? "" : this._characterBox(a, todayIso)}
         ${this._news(a)}
         <div class="foot">Trame: TV Sorrisi e Canzoni \u00b7 Notizie: Google News e Bing News. Estratti a scopo informativo: il testo integrale \u00e8 sulle fonti originali. Progetto indipendente, non affiliato a Rai n\u00e9 ai produttori di \u00abUn posto al sole\u00bb.</div>`;
     }
     const dark = this._isDark();
     this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div class="paper ${dark ? "dark" : ""}">${inner}</div></ha-card>`;
+    this.shadowRoot.querySelectorAll(".btn").forEach((b) =>
+      b.addEventListener("click", () => {
+        this._cskip = (this._cskip || 0) + 1;
+        this._render();
+      })
+    );
+    // foto locale opzionale: se non esiste resta il monogramma
+    this.shadowRoot.querySelectorAll(".av img").forEach((im) => im.addEventListener("error", () => im.remove()));
     const btn = this.shadowRoot.querySelector(".tbtn");
     if (btn) btn.addEventListener("click", () => { this._skip = (this._skip || 0) + 1; this._render(); });
   }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+- Nuova sezione **Personaggio del giorno**: interprete, ruolo, didascalia e fonte. Se un personaggio e' citato nella trama di oggi viene scelto lui, altrimenti rotazione giornaliera.
+- Foto facoltative: l'integrazione non include foto (diritti); con `photos_path` la card usa le tue immagini in `/config/www/upas/`, altrimenti mostra un monogramma.
+- Nuovo sensore **Personaggio del giorno** e nuovi attributi `characters` sul sensore Edizione.
+- Due nuove pillole in "Lo sapevi che?" (la "sporca dozzina", la storia sulle donazioni di sangue).
+
 ## 0.4.0
 - Nuova sezione **Lo sapevi che?**: pillole con aneddoti e curiosità sulla storia della serie, una al giorno (con ricorrenze, ad esempio il 21 ottobre per l'anniversario della prima puntata) e il pulsante "un'altra pillola". Ogni pillola riporta la fonte.
 - Nuovo sensore **Lo sapevi che** con la pillola del giorno e la sua fonte.

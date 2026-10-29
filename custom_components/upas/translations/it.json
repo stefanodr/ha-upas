@@ -43,6 +43,9 @@
       },
       "trivia": {
         "name": "Lo sapevi che"
+      },
+      "character": {
+        "name": "Personaggio del giorno"
       }
     }
   }

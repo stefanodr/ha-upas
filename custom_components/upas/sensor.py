@@ -19,7 +19,7 @@ from homeassistant.util import dt as dt_util
 from . import UpasConfigEntry
 from .const import DOMAIN
 from .coordinator import UpasCoordinator
-from .trivia import pick_trivia
+from .trivia import pick_character, pick_trivia
 
 PARALLEL_UPDATES = 0
 
@@ -34,6 +34,7 @@ DESCRIPTIONS = (
     SensorEntityDescription(key="this_week", translation_key="this_week", icon="mdi:calendar-week"),
     SensorEntityDescription(key="next_week", translation_key="next_week", icon="mdi:calendar-arrow-right"),
     SensorEntityDescription(key="trivia", translation_key="trivia", icon="mdi:lightbulb-on-outline"),
+    SensorEntityDescription(key="character", translation_key="character", icon="mdi:account-star"),
     SensorEntityDescription(key="news", translation_key="news", icon="mdi:newspaper-variant-multiple"),
 )
 
@@ -52,7 +53,7 @@ class UpasSensor(CoordinatorEntity[UpasCoordinator], SensorEntity):
 
     _attr_has_entity_name = True
     # Attributi voluminosi: non servono nello storico del recorder.
-    _unrecorded_attributes = frozenset({"days", "articles", "this_week", "next_week", "news", "today", "trivia"})
+    _unrecorded_attributes = frozenset({"days", "articles", "this_week", "next_week", "news", "today", "trivia", "characters"})
 
     def __init__(
         self, coordinator: UpasCoordinator, entry: UpasConfigEntry, description: SensorEntityDescription
@@ -70,7 +71,7 @@ class UpasSensor(CoordinatorEntity[UpasCoordinator], SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        if self.entity_description.key in ("today", "trivia"):
+        if self.entity_description.key in ("today", "trivia", "character"):
             # La puntata "di oggi" cambia a mezzanotte, non al prossimo refresh.
             self.async_on_remove(
                 async_track_time_change(self.hass, self._midnight, hour=0, minute=1, second=0)
@@ -92,6 +93,11 @@ class UpasSensor(CoordinatorEntity[UpasCoordinator], SensorEntity):
                     return {**day, "url": week["url"], "source": week["source"]}
         return None
 
+    def _character(self):
+        """Personaggio del giorno (stessa scelta della card)."""
+        today = (self._today() or {}).get("excerpt", "")
+        return pick_character(self.coordinator.data.get("characters", []), today, dt_util.now().date())
+
     # ------------------------------------------------------------------ stato
     @property
     def native_value(self) -> Any:
@@ -104,6 +110,9 @@ class UpasSensor(CoordinatorEntity[UpasCoordinator], SensorEntity):
         if key == "trivia":
             pill = pick_trivia(data.get("trivia", []), dt_util.now().date())
             return pill["text"][:255] if pill else None
+        if key == "character":
+            who = self._character()
+            return f"{who[0]['name']} ({who[0]['actor']})"[:255] if who else None
         if key == "today":
             day = self._today()
             return day["excerpt"][:255] if day else "Nessuna puntata oggi"
@@ -124,10 +133,14 @@ class UpasSensor(CoordinatorEntity[UpasCoordinator], SensorEntity):
                 "next_week": self._weeks().get("next"),
                 "news": data.get("news", []),
                 "trivia": data.get("trivia", []),
+                "characters": data.get("characters", []),
             }
         if key == "trivia":
             pill = pick_trivia(data.get("trivia", []), dt_util.now().date())
             return dict(pill) if pill else {}
+        if key == "character":
+            who = self._character()
+            return {**who[0], "in_todays_plot": who[1]} if who else {}
         if key == "news":
             return {"articles": data.get("news", [])}
         if key == "today":

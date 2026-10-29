@@ -49,13 +49,28 @@ title: La Gazzetta di Posillipo   # facoltativo
 max_news: 6                       # facoltativo
 show_news: true                   # facoltativo
 theme: light                      # facoltativo: light (default), dark, auto
-show_trivia: true                 # facoltativo: sezione "Lo sapevi che?"
+show_trivia: true                 # facoltativo: "Lo sapevi che?" e "Personaggio del giorno"
+photos_path: /local/upas          # facoltativo: le tue foto dei personaggi (vedi sotto)
 show_highlights: true             # facoltativo: "In primo piano" quando la settimana prossima non e' ancora pubblicata
 ```
 
 **Tema:** `light` (carta chiara, come nell'anteprima) è il default; `dark` forza lo stile scuro; `auto` segue il tema di Home Assistant.
 
 Per verificare che il file sia servito, apri `http://IP-DI-HA:8123/upas_static/upas-card.js`: devi vedere il codice JavaScript.
+
+## Lo sapevi che? e Personaggio del giorno
+Sotto le trame la card mostra due riquadri:
+- **Lo sapevi che?** Una pillola al giorno su storia e curiosità della serie (record, anniversari, momenti che hanno fatto notizia). Ogni pillola riporta la fonte con il link; il pulsante *un'altra pillola* le scorre. Nei giorni di ricorrenza (es. il 21 ottobre, anniversario della prima puntata) compare quella dedicata.
+- **Personaggio del giorno.** Se nella trama di oggi è citato un personaggio, viene scelto lui (*Nella puntata di oggi*); altrimenti si ruota ogni giorno. Mostra interprete, ruolo, una breve didascalia e la fonte.
+
+I testi stanno in `custom_components/upas/data/trivia.json` e `characters.json`: sono brevi, parafrasati e con la fonte. Puoi proporne altri con una pull request (solo fatti verificabili, con link alla fonte). Si possono nascondere con `show_trivia: false`.
+
+### Foto del personaggio (facoltativo)
+Per questioni di diritti l'integrazione **non include foto** di attori o di scena: di default il personaggio ha un monogramma. Se vuoi le foto, aggiungi le **tue** immagini (di cui hai i diritti):
+1. Crea la cartella `/config/www/upas/` e mettici file `.jpg` con questi nomi: `alberto.jpg`, `eduardo.jpg`, `ferri.jpg`, `guido.jpg`, `michele.jpg`, `niko.jpg`, `raffaele.jpg`, `renato.jpg`, `samuel.jpg`, `serena.jpg`, `silvia.jpg`.
+2. Nella card aggiungi `photos_path: /local/upas`.
+
+Se un file manca, resta il monogramma.
 
 ## Entità
 | Entità | Stato | Attributi principali |
@@ -64,6 +79,7 @@ Per verificare che il file sia servito, apri `http://IP-DI-HA:8123/upas_static/u
 | Puntata di oggi | estratto della trama | `date`, `weekday`, `excerpt`, `url` |
 | Questa settimana | es. `19–23 ottobre` | `days[]`, `url`, `source`, `published` |
 | Prossima settimana | es. `26–30 ottobre` oppure `In arrivo` | come sopra |
+| Personaggio del giorno | nome e interprete | `role`, `caption`, `source`, `in_todays_plot` |
 | Notizie | numero di notizie | `articles[]` (titolo, testata, url, data) |
 | Lo sapevi che | testo della pillola del giorno | `year`, `title`, `text`, `source`, `url` |
 

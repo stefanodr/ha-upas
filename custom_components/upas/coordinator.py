@@ -27,7 +27,7 @@ from .const import (
     REQUEST_TIMEOUT,
     USER_AGENT,
 )
-from .trivia import load_trivia
+from .trivia import load_characters, load_trivia
 from .parsers import (
     empty_week,
     extract_week_links,
@@ -47,6 +47,7 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     config_entry: ConfigEntry
     trivia: list[dict[str, Any]]
+    characters: list[dict[str, Any]]
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         minutes = int(entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
@@ -61,6 +62,7 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_setup(self) -> None:
         """Carica una volta sola le pillole "Lo sapevi che?"."""
         self.trivia = await self.hass.async_add_executor_job(load_trivia)
+        self.characters = await self.hass.async_add_executor_job(load_characters)
 
     # ------------------------------------------------------------- HTTP
     async def _get(self, url: str) -> str | None:
@@ -155,4 +157,5 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "weeks": weeks,
             "news": news,
             "trivia": self.trivia,
+            "characters": self.characters,
         }
