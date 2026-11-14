@@ -1,0 +1,15 @@
+get_summary:
+  fields:
+    scope:
+      required: false
+      default: today
+      selector:
+        select:
+          translation_key: scope
+          options:
+            - today
+            - yesterday
+            - this_week
+            - next_week
+            - previous_week
+            - news

@@ -7,7 +7,11 @@
         "data": {
           "scan_interval": "Update interval (minutes)",
           "news_enabled": "Show general news",
-          "max_news": "Maximum number of news items"
+          "max_news": "Maximum number of news items",
+          "news_sources": "News sources",
+          "news_blocklist": "Words to exclude (comma separated)",
+          "masthead_title": "Masthead title",
+          "air_time": "Air time"
         }
       }
     }
@@ -19,7 +23,11 @@
         "data": {
           "scan_interval": "Update interval (minutes)",
           "news_enabled": "Show general news",
-          "max_news": "Maximum number of news items"
+          "max_news": "Maximum number of news items",
+          "news_sources": "News sources",
+          "news_blocklist": "Words to exclude (comma separated)",
+          "masthead_title": "Masthead title",
+          "air_time": "Air time"
         }
       }
     }
@@ -46,6 +54,60 @@
       },
       "character": {
         "name": "Character of the day"
+      },
+      "yesterday": {
+        "name": "Yesterday's episode"
+      },
+      "previous_week": {
+        "name": "Last week"
+      }
+    },
+    "calendar": {
+      "episodes": {
+        "name": "Episodes"
+      }
+    },
+    "event": {
+      "broadcast": {
+        "name": "Broadcast",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "week_published": "Week published",
+              "episode_starting": "Episode starting"
+            }
+          }
+        }
+      }
+    }
+  },
+  "issues": {
+    "sources_unreachable": {
+      "title": "Sources unreachable",
+      "description": "Plot and news sources have not responded for several updates. The integration keeps retrying; if it persists check Home Assistant's connection or open an issue on GitHub."
+    }
+  },
+  "services": {
+    "get_summary": {
+      "name": "Get summary",
+      "description": "Returns plot or news as data (useful for Assist and scripts).",
+      "fields": {
+        "scope": {
+          "name": "What to return",
+          "description": "What to return"
+        }
+      }
+    }
+  },
+  "selector": {
+    "scope": {
+      "options": {
+        "today": "Today's episode",
+        "yesterday": "Yesterday's episode",
+        "this_week": "This week",
+        "next_week": "Next week",
+        "previous_week": "Last week",
+        "news": "News"
       }
     }
   }

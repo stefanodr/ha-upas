@@ -1,122 +1,160 @@
 <p align="center"><img src="custom_components/upas/brand/logo@2x.png" alt="Un Posto al Sole" width="480"></p>
 
-# Un Posto al Sole per Home Assistant
+# Un Posto al Sole for Home Assistant
+
+🇮🇹 [Versione italiana](README.it.md)
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
 [![Release](https://img.shields.io/github/v/release/stefanodr/ha-upas)](https://github.com/stefanodr/ha-upas/releases)
 [![Validate](https://github.com/stefanodr/ha-upas/actions/workflows/validate.yaml/badge.svg)](https://github.com/stefanodr/ha-upas/actions/workflows/validate.yaml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-[![Apri Home Assistant e aggiungi il repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=stefanodr&repository=ha-upas&category=integration)
+[![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=stefanodr&repository=ha-upas&category=integration)
 
-Anticipazioni **giorno per giorno della settimana corrente e della successiva**, più le **ultime notizie dal web**, presentate in una card in **stile quotidiano**.
+Day-by-day plot previews for the **current and next week** of the Italian soap *Un posto al sole*, plus the **latest news from the web**, shown in a **newspaper-style** Lovelace card.
 
-![Anteprima](docs/preview-0.5.png)
+![Preview](docs/preview-1.0.png)
 
-> Progetto indipendente della community, non affiliato a Rai né ai produttori di «Un posto al sole».
+> Independent community project, not affiliated with Rai or the producers of "Un posto al sole". The plots and trivia are in Italian.
 
-## Cosa fa
-- **Lo sapevi che?**: una pillola al giorno con aneddoti sulla storia della serie, sempre con la fonte e un pulsante per sfogliare le altre.
-- Legge le trame settimanali pubblicate da TV Sorrisi e Canzoni (di norma il sabato per la settimana dopo) e le divide per giorno.
-- Raccoglie titoli, testata e data delle notizie da due feed RSS (Google News e Bing News), uniti e senza doppioni. Se una fonte non risponde, usa l'altra.
-- Mostra estratti brevi con link alla fonte: il testo integrale resta sul sito originale.
-- Nel weekend la "settimana corrente" diventa quella che inizia lunedì, così sai già cosa arriva.
-- Se la settimana successiva non è ancora stata pubblicata, la card mostra la sezione **In primo piano**: prossima puntata, personaggi della settimana e dove guardarla. Appena le trame escono, torna la colonna con i giorni.
+## What's new in 1.0
+- **Yesterday on air** and a collapsible **last-week recap**, backed by an archive that survives restarts.
+- **Days without an episode** (breaks, sports events) are detected and shown as such.
+- **Calendar** of episodes, **event entity** (new plot published, episode starting) and the **`upas.get_summary`** service for Assist and scripts.
+- **Card**: visual editor, **compact** layout, **spoiler-free** mode, **Italian/English** UI.
+- **News**: choose the sources and exclude unwanted words. **Options**: masthead title and air time.
+- Downloadable **diagnostics** and a **Repairs** notice when the sources have been unreachable for a long time.
 
-## Installazione con HACS
-1. HACS → ⋮ → **Repository personalizzati** → incolla `https://github.com/stefanodr/ha-upas`, categoria **Integrazione**.
-2. Cerca **Un Posto al Sole**, scarica e **riavvia Home Assistant**.
-3. **Impostazioni → Dispositivi e servizi → Aggiungi integrazione → Un Posto al Sole**.
+## What it does
+- Reads the weekly plots published by TV Sorrisi e Canzoni (usually on Saturday for the following week) and splits them by day.
+- Collects headlines, source and date of the news from two RSS feeds (Google News and Bing News), merged without duplicates. If one feed is down, the other is used.
+- Shows short excerpts with a link to the source: the full text stays on the original site.
+- On weekends the "current week" becomes the one starting on Monday, so you already see what's coming.
+- While next week's plots are not out yet, the card shows **In the spotlight**: next episode, characters of the week and where to watch.
+- **Did you know?** A daily trivia pill about the history of the series, always with its source.
+- **Character of the day** with actor, role, a short caption and source.
 
-### Installazione manuale
-Copia `custom_components/upas` in `<config>/custom_components/upas` e riavvia.
+## Installation with HACS
+1. In HACS search for **Un Posto al Sole**, download it and **restart Home Assistant**.
+2. **Settings → Devices & services → Add integration → Un Posto al Sole**.
 
-## La card
-L'integrazione include la card `custom:upas-card` e **la registra da sola** tra le risorse della dashboard (modalità storage). Dopo l'installazione riavvia Home Assistant e ricarica il browser con Ctrl+F5.
+**Alternative (custom repository)**, if you can't find it in the search: HACS → ⋮ → **Custom repositories** → paste `https://github.com/stefanodr/ha-upas`, category **Integration**, then follow the steps above.
 
-Se usi dashboard in **modalità YAML**, o vedi l'errore **"Custom element doesn't exist: upas-card"**, aggiungi la risorsa a mano (una volta sola):
+### Manual installation
+Copy `custom_components/upas` to `<config>/custom_components/upas` and restart.
 
-1. Attiva la **Modalità avanzata** nel tuo profilo utente.
-2. Vai in *Impostazioni → Dashboard → ⋮ → Risorse → Aggiungi risorsa*.
-3. URL `/upas_static/upas-card.js`, tipo **Modulo JavaScript**, poi *Crea*.
-4. Ricarica il browser con **Ctrl+F5** (nell'app companion: *Impostazioni → Companion app → Debug → Svuota cache frontend*).
+## The card
+The integration ships the `custom:upas-card` card and **registers it by itself** in the dashboard resources (storage mode). After installing, restart Home Assistant and hard-reload the browser (Ctrl+F5).
 
-Poi, nella dashboard: **Aggiungi scheda → Manuale**:
+If you use **YAML-mode** dashboards, or you see **"Custom element doesn't exist: upas-card"**, add the resource by hand (once):
+
+1. Enable **Advanced mode** in your user profile.
+2. Go to *Settings → Dashboards → ⋮ → Resources → Add resource*.
+3. URL `/upas_static/upas-card.js`, type **JavaScript module**, then *Create*.
+4. Hard-reload the browser (**Ctrl+F5**; in the companion app: *Settings → Companion app → Debug → Reset frontend cache*).
+
+Then add the card from the UI (**Add card → Un Posto al Sole**, with a **visual editor**) or manually:
 
 ```yaml
 type: custom:upas-card
-title: La Gazzetta di Posillipo   # facoltativo
-max_news: 6                       # facoltativo
-show_news: true                   # facoltativo
-theme: light                      # facoltativo: light (default), dark, auto
-show_trivia: true                 # facoltativo: "Lo sapevi che?" e "Personaggio del giorno"
-photos_path: /local/upas          # facoltativo: le tue foto dei personaggi (vedi sotto)
-show_highlights: true             # facoltativo: "In primo piano" quando la settimana prossima non e' ancora pubblicata
+title: La Gazzetta di Posillipo   # optional (default: title from the integration options)
+max_news: 6                       # optional
+show_news: true                   # optional
+theme: light                      # optional: light (default), dark, auto (follows Home Assistant)
+layout: full                      # optional: full (default) or compact
+spoiler_free: false               # optional: blurs plots from today on until you tap them
+show_yesterday: true              # optional: "Yesterday on air"
+show_recap: true                  # optional: last-week recap (collapsible)
+show_trivia: true                 # optional: "Did you know?" and "Character of the day"
+show_highlights: true             # optional: "In the spotlight" while next week is not published
+language: auto                    # optional: auto (Home Assistant language), it, en
+photos_path: /local/upas          # optional: your own character photos (see below)
 ```
 
-**Tema:** `light` (carta chiara, come nell'anteprima) è il default; `dark` forza lo stile scuro; `auto` segue il tema di Home Assistant.
+**Compact layout** (`layout: compact`): title, today's episode and a few news items.
 
-Per verificare che il file sia servito, apri `http://IP-DI-HA:8123/upas_static/upas-card.js`: devi vedere il codice JavaScript.
+![Compact](docs/preview-compact.png)
 
-## Lo sapevi che? e Personaggio del giorno
-Sotto le trame la card mostra due riquadri:
-- **Lo sapevi che?** Una pillola al giorno su storia e curiosità della serie (record, anniversari, momenti che hanno fatto notizia). Ogni pillola riporta la fonte con il link; il pulsante *un'altra pillola* le scorre. Nei giorni di ricorrenza (es. il 21 ottobre, anniversario della prima puntata) compare quella dedicata.
-- **Personaggio del giorno.** Se nella trama di oggi è citato un personaggio, viene scelto lui (*Nella puntata di oggi*); altrimenti si ruota ogni giorno. Mostra interprete, ruolo, una breve didascalia e la fonte.
+**Spoiler-free** (`spoiler_free: true`): plots from today on are blurred until tapped, and characters cited in the plot are not revealed. It applies to the card only; the sensors still expose the full text.
 
-I testi stanno in `custom_components/upas/data/trivia.json` e `characters.json`: sono brevi, parafrasati e con la fonte. Puoi proporne altri con una pull request (solo fatti verificabili, con link alla fonte). Si possono nascondere con `show_trivia: false`.
+To check the file is served, open `http://HA-IP:8123/upas_static/upas-card.js`: you should see JavaScript code.
 
-### Foto del personaggio (facoltativo)
-Per questioni di diritti l'integrazione **non include foto** di attori o di scena: di default il personaggio ha un monogramma. Se vuoi le foto, aggiungi le **tue** immagini (di cui hai i diritti):
-1. Crea la cartella `/config/www/upas/` e mettici file `.jpg` con questi nomi: `alberto.jpg`, `eduardo.jpg`, `ferri.jpg`, `guido.jpg`, `michele.jpg`, `niko.jpg`, `raffaele.jpg`, `renato.jpg`, `samuel.jpg`, `serena.jpg`, `silvia.jpg`.
-2. Nella card aggiungi `photos_path: /local/upas`.
+## Did you know? and Character of the day
+- **Did you know?** One pill a day about the series' history (records, anniversaries, moments that made the news). Each pill has its source link; *another one* cycles through them. On anniversaries (e.g. 21 October, the first episode) the dedicated pill appears.
+- **Character of the day.** If a character is cited in today's plot, that one is chosen; otherwise it rotates daily. It shows actor, role, a short caption and the source.
 
-Se un file manca, resta il monogramma.
+The texts live in `custom_components/upas/data/trivia.json` and `characters.json`: short, paraphrased, with source. Pull requests with more are welcome (verifiable facts only, with a source link).
 
-## Entità
-| Entità | Stato | Attributi principali |
+### Character photos (optional)
+For copyright reasons the integration **does not ship photos** of actors or scenes; characters get a monogram. If you want photos, add **your own** images you have the rights to:
+1. Create `/config/www/upas/` and put `.jpg` files in it named after the character id (e.g. `alberto.jpg`, `eduardo.jpg`, `silvia.jpg`; ids are in `characters.json`).
+2. Add `photos_path: /local/upas` to the card.
+
+If a file is missing, the monogram stays.
+
+## Entities
+Entity IDs depend on Home Assistant's language (in English e.g. `sensor.un_posto_al_sole_today_s_episode`): check *Settings → Entities*.
+
+| Entity | State | Main attributes |
 |---|---|---|
-| Edizione | data/ora ultimo aggiornamento | `today`, `this_week`, `next_week`, `news` |
-| Puntata di oggi | estratto della trama | `date`, `weekday`, `excerpt`, `url` |
-| Questa settimana | es. `19–23 ottobre` | `days[]`, `url`, `source`, `published` |
-| Prossima settimana | es. `26–30 ottobre` oppure `In arrivo` | come sopra |
-| Personaggio del giorno | nome e interprete | `role`, `caption`, `source`, `in_todays_plot` |
-| Notizie | numero di notizie | `articles[]` (titolo, testata, url, data) |
-| Lo sapevi che | testo della pillola del giorno | `year`, `title`, `text`, `source`, `url` |
+| Edition | last update time | `today`, `yesterday`, `this_week`, `next_week`, `previous_week`, `news`, `masthead_title` |
+| Today's episode | plot excerpt (or "Non in onda: …") | `date`, `weekday`, `excerpt`, `no_episode`, `pause_note`, `url` |
+| Yesterday's episode | same, for yesterday | same |
+| This week | e.g. `19–23 ottobre` | `days[]`, `url`, `source`, `published` |
+| Next week | e.g. `26–30 ottobre` or `In arrivo` | same |
+| Last week | from the archive | same |
+| Character of the day | name and actor | `role`, `caption`, `source`, `in_todays_plot` |
+| News | number of items | `articles[]` (title, source, url, date) |
+| Did you know | text of today's pill | `year`, `title`, `text`, `source`, `url` |
+| Episodes (calendar) | next episode | events at air time |
+| Broadcast (event) | last event | `week_published`, `episode_starting` |
 
-Gli ID entità dipendono dalla lingua di Home Assistant (es. `sensor.un_posto_al_sole_puntata_di_oggi` in italiano): controllali in *Impostazioni → Entità*. Un esempio di notifica serale è in [`examples/automation_notifica.yaml`](examples/automation_notifica.yaml).
+## Automations, calendar and Assist
+- **Event**: the *Broadcast* entity fires `episode_starting` at air time (only on days with an episode) and `week_published` when next week's plot comes out. Example: [`examples/automation_notifica.yaml`](examples/automation_notifica.yaml).
+- **Calendar**: known episodes (also past ones, from the archive) appear in the *Episodes* calendar.
+- **`upas.get_summary` service** (returns data, handy for Assist/LLMs and scripts): `scope` is one of `today`, `yesterday`, `this_week`, `next_week`, `previous_week`, `news`.
 
-## Esempio di dashboard
-Per una pagina a tutto schermo crea una vista di tipo **Pannello (1 scheda)** e inserisci la card; un esempio è in [`examples/dashboard.yaml`](examples/dashboard.yaml).
+```yaml
+action: upas.get_summary
+data:
+  scope: today
+response_variable: episode
+```
 
-## Opzioni
-Intervallo di aggiornamento (60–1440 min, default 360), notizie on/off, numero massimo di notizie. Il salvataggio ricarica l'integrazione.
+## Dashboard example
+For a full-screen page create a **Panel (1 card)** view and add the card; see [`examples/dashboard.yaml`](examples/dashboard.yaml).
 
-## Fonti e limiti
-- Trame: <https://www.sorrisi.com/tag/un-posto-al-sole/> (articoli «le trame dal X al Y»).
-- Notizie: Google News e Bing News (RSS).
-- Il parsing dipende dalla struttura delle pagine: se una fonte cambia, la card mostra "in arrivo" o nessuna notizia e nei log (livello debug) trovi il dettaglio. I parser stanno in `parsers.py` e sono coperti da test.
-- Gli estratti sono limitati a ~280 caratteri per giorno. Rispetta i termini d'uso delle fonti e non abbassare l'intervallo di aggiornamento senza motivo.
+## Options
+Update interval (60–1440 min, default 360), news on/off, max number of news, **news sources** (Google/Bing), **words to exclude** (comma separated, matched on title and source), **masthead title** and **air time** (default 20:50, used by the calendar and the event). Saving reloads the integration.
 
-## Problemi frequenti
-| Sintomo | Cosa fare |
+**Diagnostics and repairs:** in *Devices & services → Un Posto al Sole → ⋮ → Download diagnostics* you find the state of the sources. If no source answers for several updates in a row a notice appears in *Repairs* (it closes by itself when data is back). Meanwhile the last valid data is shown.
+
+## Sources and limits
+- Plots: <https://www.sorrisi.com/tag/un-posto-al-sole/> ("le trame dal X al Y" articles).
+- News: Google News and Bing News (RSS).
+- Parsing depends on the pages' structure: if a source changes, the card shows "in arrivo" or no news, and the debug log has details. Parsers are in `parsers.py` and covered by tests.
+- Excerpts are limited to ~280 characters per day. Respect the sources' terms of use and don't lower the update interval without reason.
+
+## Troubleshooting
+| Symptom | What to do |
 |---|---|
-| "Custom element doesn't exist: upas-card" | Aggiungi la risorsa a mano come descritto in [La card](#la-card), poi **Ctrl+F5**. |
-| "Prossima settimana: In arrivo" | Normale: le trame vengono pubblicate di norma il sabato precedente. |
-| Nessuna notizia | Controlla che l'opzione notizie sia attiva e guarda i log con livello debug (`custom_components.upas`). |
-| Trame vuote dopo un cambio di sito | Apri una [issue](https://github.com/stefanodr/ha-upas/issues) indicando l'articolo che non viene letto. |
+| "Custom element doesn't exist: upas-card" | Add the resource by hand as described in [The card](#the-card), then **Ctrl+F5**. |
+| "Next week: In arrivo" | Normal: plots are usually published the Saturday before. |
+| No news | Check the news option is on and the sources/blocklist in the options; enable debug logging. |
+| Empty plots after a site change | Open an [issue](https://github.com/stefanodr/ha-upas/issues) naming the article that is not parsed. |
 
-Per i log dettagliati:
+Debug logging:
 ```yaml
 logger:
   logs:
     custom_components.upas: debug
 ```
 
-## Sviluppo
+## Development
 ```bash
 pip install -r requirements_test.txt
 pytest
 ```
 
-## Licenza
-MIT. Icona e logo sono originali (sole sul golfo) e non riproducono il marchio della serie.
+## License
+MIT. Icon and logo are original artwork (sun over the bay) and do not reproduce the series' trademark.

@@ -15,11 +15,23 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+    TextSelector,
+    TimeSelector,
 )
 
 from .const import (
+    CONF_AIR_TIME,
+    CONF_MASTHEAD_TITLE,
     CONF_MAX_NEWS,
+    CONF_NEWS_BLOCKLIST,
     CONF_NEWS_ENABLED,
+    CONF_NEWS_SOURCES,
+    DEFAULT_AIR_TIME,
+    DEFAULT_MASTHEAD_TITLE,
+    NEWS_FEEDS,
     CONF_SCAN_INTERVAL,
     DEFAULT_MAX_NEWS,
     DEFAULT_SCAN_INTERVAL,
@@ -52,6 +64,24 @@ def _schema(defaults: dict[str, Any]) -> vol.Schema:
             ): NumberSelector(
                 NumberSelectorConfig(min=3, max=30, step=1, mode=NumberSelectorMode.BOX)
             ),
+            vol.Required(
+                CONF_NEWS_SOURCES, default=defaults.get(CONF_NEWS_SOURCES, list(NEWS_FEEDS))
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=[{"value": k, "label": k.capitalize()} for k in NEWS_FEEDS],
+                    multiple=True,
+                    mode=SelectSelectorMode.LIST,
+                )
+            ),
+            vol.Optional(
+                CONF_NEWS_BLOCKLIST, default=defaults.get(CONF_NEWS_BLOCKLIST, "")
+            ): TextSelector(),
+            vol.Required(
+                CONF_MASTHEAD_TITLE, default=defaults.get(CONF_MASTHEAD_TITLE, DEFAULT_MASTHEAD_TITLE)
+            ): TextSelector(),
+            vol.Required(
+                CONF_AIR_TIME, default=defaults.get(CONF_AIR_TIME, DEFAULT_AIR_TIME)
+            ): TimeSelector(),
         }
     )
 
@@ -61,6 +91,10 @@ def _clean(user_input: dict[str, Any]) -> dict[str, Any]:
         CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
         CONF_NEWS_ENABLED: bool(user_input[CONF_NEWS_ENABLED]),
         CONF_MAX_NEWS: int(user_input[CONF_MAX_NEWS]),
+        CONF_NEWS_SOURCES: list(user_input.get(CONF_NEWS_SOURCES) or NEWS_FEEDS),
+        CONF_NEWS_BLOCKLIST: str(user_input.get(CONF_NEWS_BLOCKLIST) or "").strip(),
+        CONF_MASTHEAD_TITLE: str(user_input.get(CONF_MASTHEAD_TITLE) or DEFAULT_MASTHEAD_TITLE).strip(),
+        CONF_AIR_TIME: str(user_input.get(CONF_AIR_TIME) or DEFAULT_AIR_TIME)[:5],
     }
 
 

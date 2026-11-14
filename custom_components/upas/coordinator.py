@@ -8,18 +8,29 @@ from typing import Any
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ARCHIVE_WEEKS,
+    BUS_EVENT,
     CONF_MAX_NEWS,
+    CONF_NEWS_BLOCKLIST,
     CONF_NEWS_ENABLED,
+    CONF_NEWS_SOURCES,
+    EVENT_WEEK_PUBLISHED,
+    ISSUE_FAILURES,
+    ISSUE_SOURCES,
+    NEWS_FEEDS,
+    STORAGE_KEY,
+    STORAGE_VERSION,
     CONF_SCAN_INTERVAL,
     DEFAULT_MAX_NEWS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
-    NEWS_URLS,
     PLOTS_ARTICLE_URL,
     PLOTS_BASE,
     PLOTS_SOURCE_NAME,
@@ -31,11 +42,13 @@ from .trivia import load_characters, load_trivia
 from .parsers import (
     empty_week,
     extract_week_links,
+    filter_news,
     merge_news,
     parse_news_rss,
     parse_week_article,
     reference_monday,
     slug_candidates,
+    split_words,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,9 +71,16 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             name=DOMAIN,
             update_interval=timedelta(minutes=minutes),
         )
+        self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry.entry_id}")
+        self._archive: dict[str, dict[str, Any]] = {}
+        self._failures = 0
+        self._fresh_plots = False
+        self._fresh_news = False
 
     async def _async_setup(self) -> None:
-        """Carica una volta sola le pillole "Lo sapevi che?"."""
+        """Carica pillole, personaggi e archivio delle settimane gia' viste."""
+        stored = await self._store.async_load() or {}
+        self._archive = stored.get("weeks", {})
         self.trivia = await self.hass.async_add_executor_job(load_trivia)
         self.characters = await self.hass.async_add_executor_job(load_characters)
 
@@ -116,33 +136,61 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 extract_week_links, tag_html, PLOTS_BASE
             )
         weeks: dict[str, dict[str, Any]] = {}
+        self._fresh_plots = bool(tag_html)
         for key, start in (("this", monday), ("next", monday + timedelta(days=7))):
             week = await self._fetch_week(start, links)
+            if week is not None:
+                self._fresh_plots = True
             if week is None:
                 previous = (self.data or {}).get("weeks", {}).get(key)
-                if previous and previous.get("start") == start.isoformat():
+                if previous and previous.get("start") == start.isoformat() and previous.get("available"):
                     week = previous  # tieni l'ultima versione buona
                 else:
-                    week = empty_week(start)
+                    week = self._archive.get(start.isoformat()) or empty_week(start)
             weeks[key] = week
+        prev_start = (monday - timedelta(days=7)).isoformat()
+        weeks["previous"] = self._archive.get(prev_start) or empty_week(monday - timedelta(days=7))
         return weeks
+
+    def _remember(self, weeks: dict[str, dict[str, Any]]) -> bool:
+        """Salva nell'archivio le settimane disponibili; True se qualcosa e' cambiato."""
+        changed = False
+        for week in weeks.values():
+            if week.get("available") and self._archive.get(week["start"]) != week:
+                self._archive[week["start"]] = week
+                changed = True
+        for start in sorted(self._archive)[:-ARCHIVE_WEEKS]:
+            del self._archive[start]
+            changed = True
+        if changed:
+            self._store.async_delay_save(lambda: {"weeks": self._archive}, 5)
+        return changed
+
+    def archive(self) -> dict[str, dict[str, Any]]:
+        return self._archive
 
     # ----------------------------------------------------------- notizie
     async def _fetch_news(self) -> list[dict[str, Any]]:
         opts = self.config_entry.options
+        self._fresh_news = False
         if not opts.get(CONF_NEWS_ENABLED, True):
             return []
         limit = int(opts.get(CONF_MAX_NEWS, DEFAULT_MAX_NEWS))
+        wanted = opts.get(CONF_NEWS_SOURCES) or list(NEWS_FEEDS)
+        blocklist = split_words(opts.get(CONF_NEWS_BLOCKLIST))
         lists: list[list[dict[str, Any]]] = []
-        for url in NEWS_URLS:
+        for name, url in NEWS_FEEDS.items():
+            if name not in wanted:
+                continue
             xml_text = await self._get(url)
             if xml_text:
                 lists.append(
                     await self.hass.async_add_executor_job(parse_news_rss, xml_text, limit)
                 )
+        self._fresh_news = bool(lists)
         if not lists:  # nessuna fonte raggiungibile: tieni le ultime notizie buone
             return (self.data or {}).get("news", [])
-        return merge_news(lists, limit)
+        return filter_news(merge_news(lists, limit * 2), blocklist)[:limit]
 
     # ------------------------------------------------------------ update
     async def _async_update_data(self) -> dict[str, Any]:
@@ -150,8 +198,32 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         monday = reference_monday(today)
         weeks = await self._fetch_plots(monday)
         news = await self._fetch_news()
-        if not any(w["available"] for w in weeks.values()) and not news:
-            raise UpdateFailed("Nessuna fonte raggiungibile (trame e notizie)")
+        news_on = bool(self.config_entry.options.get(CONF_NEWS_ENABLED, True))
+        reached = self._fresh_plots or (news_on and self._fresh_news)
+        if not reached:
+            self._failures += 1
+            if self._failures >= ISSUE_FAILURES:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    ISSUE_SOURCES,
+                    is_fixable=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key=ISSUE_SOURCES,
+                )
+            has_data = any(w["available"] for k, w in weeks.items() if k != "previous") or news
+            if not has_data or self._failures >= ISSUE_FAILURES * 3:
+                raise UpdateFailed("Nessuna fonte raggiungibile (trame e notizie)")
+        else:
+            self._failures = 0
+            ir.async_delete_issue(self.hass, DOMAIN, ISSUE_SOURCES)
+        was_published = bool((self.data or {}).get("weeks", {}).get("next", {}).get("available"))
+        self._remember(weeks)
+        if self.data and not was_published and weeks["next"]["available"]:
+            self.hass.bus.async_fire(
+                BUS_EVENT,
+                {"type": EVENT_WEEK_PUBLISHED, "label": weeks["next"]["label"], "url": weeks["next"]["url"]},
+            )
         return {
             "updated": dt_util.utcnow().isoformat(),
             "weeks": weeks,
@@ -159,3 +231,23 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "trivia": self.trivia,
             "characters": self.characters,
         }
+
+    # ------------------------------------------------------------ helpers
+    def episode_for(self, day: date) -> dict[str, Any] | None:
+        """Trama di un giorno (anche passato, dall'archivio) o None."""
+        iso = day.isoformat()
+        sources = list((self.data or {}).get("weeks", {}).values()) + list(self._archive.values())
+        for week in sources:
+            for item in week.get("days", []):
+                if item["date"] == iso:
+                    return {**item, "url": week["url"], "source": week["source"]}
+        return None
+
+    def all_episodes(self) -> list[dict[str, Any]]:
+        """Tutte le puntate note (archivio + dati correnti), ordinate per data."""
+        found: dict[str, dict[str, Any]] = {}
+        sources = list(self._archive.values()) + list((self.data or {}).get("weeks", {}).values())
+        for week in sources:
+            for item in week.get("days", []):
+                found[item["date"]] = {**item, "url": week["url"], "source": week["source"]}
+        return [found[k] for k in sorted(found)]

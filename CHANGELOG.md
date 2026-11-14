@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.0.0
+### English
+- **Yesterday on air** and a collapsible **last-week recap**, backed by a persistent archive (survives restarts, kept for 12 weeks) that is also used as a fallback when the source is unreachable.
+- **Days without an episode** (breaks, sports events) are detected: new attributes `no_episode` and `pause_note`, shown in the card and in the calendar (no event on those days).
+- New entities: **calendar** (episodes), **event** (`week_published`, `episode_starting`), sensors **Yesterday's episode** and **Last week**. No existing entity is renamed.
+- New service **`upas.get_summary`** (returns data; for Assist/LLM and scripts) and `upas_event` bus event.
+- **Card**: visual editor, `layout: compact`, `spoiler_free`, `show_yesterday`, `show_recap`, `language` (IT/EN UI); title defaults to the one set in the integration options.
+- **News**: choose the sources (Google/Bing) and exclude words (title/source).
+- **Options**: masthead title and air time (calendar and event).
+- **Diagnostics** download and a **Repairs** notice when the sources stay unreachable.
+- README now in English (`README.md`) and Italian (`README.it.md`); CI workflow (hassfest, HACS, tests); more tests.
+- Not included: a second plot source (planned for 1.1).
+
+### Italiano
+- **Ieri in onda** e **riepilogo della settimana scorsa** (a scomparsa), con un archivio persistente (resta dopo i riavvii, 12 settimane) usato anche come riserva quando la fonte non risponde.
+- **Giorni senza puntata** (pause, eventi sportivi) riconosciuti: nuovi attributi `no_episode` e `pause_note`, mostrati nella card e nel calendario (nessun evento in quei giorni).
+- Nuove entità: **calendario** (puntate), **evento** (`week_published`, `episode_starting`), sensori **Ieri in onda** e **Settimana scorsa**. Nessuna entità esistente viene rinominata.
+- Nuovo servizio **`upas.get_summary`** (restituisce dati; per Assist/LLM e script) ed evento sul bus `upas_event`.
+- **Card**: editor visivo, `layout: compact`, `spoiler_free`, `show_yesterday`, `show_recap`, `language` (interfaccia IT/EN); il titolo predefinito è quello scelto nelle opzioni dell'integrazione.
+- **Notizie**: scelta delle fonti (Google/Bing) ed esclusione di parole (titolo/testata).
+- **Opzioni**: titolo della testata e orario di messa in onda (calendario ed evento).
+- **Diagnostica** scaricabile e avviso in **Riparazioni** se le fonti restano irraggiungibili.
+- README in inglese (`README.md`) e in italiano (`README.it.md`); workflow CI (hassfest, HACS, test); più test.
+- Non incluso: una seconda fonte per le trame (prevista per la 1.1).
+
 ## 0.5.0
 - Nuova sezione **Personaggio del giorno**: interprete, ruolo, didascalia e fonte. Se un personaggio e' citato nella trama di oggi viene scelto lui, altrimenti rotazione giornaliera.
 - Foto facoltative: l'integrazione non include foto (diritti); con `photos_path` la card usa le tue immagini in `/config/www/upas/`, altrimenti mostra un monogramma.

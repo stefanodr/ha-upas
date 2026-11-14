@@ -7,7 +7,11 @@
         "data": {
           "scan_interval": "Intervallo di aggiornamento (minuti)",
           "news_enabled": "Mostra notizie generali",
-          "max_news": "Numero massimo di notizie"
+          "max_news": "Numero massimo di notizie",
+          "news_sources": "Fonti delle notizie",
+          "news_blocklist": "Parole da escludere (separate da virgola)",
+          "masthead_title": "Titolo della testata",
+          "air_time": "Orario di messa in onda"
         }
       }
     }
@@ -19,7 +23,11 @@
         "data": {
           "scan_interval": "Intervallo di aggiornamento (minuti)",
           "news_enabled": "Mostra notizie generali",
-          "max_news": "Numero massimo di notizie"
+          "max_news": "Numero massimo di notizie",
+          "news_sources": "Fonti delle notizie",
+          "news_blocklist": "Parole da escludere (separate da virgola)",
+          "masthead_title": "Titolo della testata",
+          "air_time": "Orario di messa in onda"
         }
       }
     }
@@ -46,6 +54,60 @@
       },
       "character": {
         "name": "Personaggio del giorno"
+      },
+      "yesterday": {
+        "name": "Ieri in onda"
+      },
+      "previous_week": {
+        "name": "Settimana scorsa"
+      }
+    },
+    "calendar": {
+      "episodes": {
+        "name": "Puntate"
+      }
+    },
+    "event": {
+      "broadcast": {
+        "name": "Messa in onda",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "week_published": "Trama pubblicata",
+              "episode_starting": "Puntata in partenza"
+            }
+          }
+        }
+      }
+    }
+  },
+  "issues": {
+    "sources_unreachable": {
+      "title": "Fonti non raggiungibili",
+      "description": "Le fonti di trame e notizie non rispondono da diversi aggiornamenti. L'integrazione riprova da sola; se il problema persiste controlla la connessione di Home Assistant o segnala il problema su GitHub."
+    }
+  },
+  "services": {
+    "get_summary": {
+      "name": "Riepilogo",
+      "description": "Restituisce trama o notizie come dati (utile per Assist e script).",
+      "fields": {
+        "scope": {
+          "name": "Cosa restituire",
+          "description": "Cosa restituire"
+        }
+      }
+    }
+  },
+  "selector": {
+    "scope": {
+      "options": {
+        "today": "Puntata di oggi",
+        "yesterday": "Puntata di ieri",
+        "this_week": "Questa settimana",
+        "next_week": "Prossima settimana",
+        "previous_week": "Settimana scorsa",
+        "news": "Notizie"
       }
     }
   }

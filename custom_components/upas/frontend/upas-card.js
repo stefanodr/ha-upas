@@ -10,9 +10,52 @@
  *   show_trivia: true                 # facoltativo: "Lo sapevi che?" e "Personaggio del giorno"
  *   photos_path: /local/upas          # facoltativo: cartella locale con le tue foto <id>.jpg (vedi README)
  *   theme: light                      # facoltativo: light (default), dark, auto (segue Home Assistant)
+ *   layout: full                      # facoltativo: full (default) o compact (titolo, puntata e poche notizie)
+ *   spoiler_free: false               # facoltativo: sfoca le trame da oggi in poi finche' non le tocchi
+ *   show_yesterday: true              # facoltativo: "Ieri in onda"
+ *   show_recap: true                  # facoltativo: riepilogo della settimana scorsa (a scomparsa)
+ *   language: auto                    # facoltativo: auto (lingua di Home Assistant), it, en
  *   entity: sensor.xxx                # facoltativo: trovato da solo
  */
-const UPAS_VERSION = "0.5.0";
+const UPAS_VERSION = "1.0.0";
+
+const I18N = {
+  it: {
+    today_on: "oggi in onda", tonight: "Stasera in onda", next_ep: "Prossima puntata", this_week: "Questa settimana", next_week: "Settimana prossima",
+    prev_week: "Settimana scorsa", yesterday: "Ieri in onda", recap: "Il riepilogo della settimana scorsa", highlights: "In primo piano",
+    waiting: "in attesa delle nuove trame", not_yet: "La redazione \u00e8 al lavoro: queste trame vengono pubblicate di norma il sabato precedente.",
+    full_text: "Testo integrale su", go_on: "Continua su", the_source: "la fonte", paused: "Non in onda", reveal: "Tocca per leggere (spoiler)",
+    web: "Dal web", latest: "ultime notizie", no_news: "Nessuna notizia disponibile al momento.", edition: "Edizione online", updated: "Aggiornata alle",
+    trivia: "Lo sapevi che?", source: "Fonte", another_pill: "un'altra pillola \u2192", another_char: "un altro personaggio \u2192", in_plot: "Nella puntata di oggi",
+    char_day: "Personaggio del giorno", played_by: "interpretato da", weekly_chars: "Personaggi della settimana", day: "giorno", days: "giorni",
+    next_air: "Prossima puntata", where: "Dove guardarla", tomorrow: "Domani", tonight2: "Stasera",
+    air_txt: "Rai 3, in prima serata (circa {t}), salvo variazioni di palinsesto.",
+    where_txt: "In diretta su Rai 3 dal luned\u00ec al venerd\u00ec; puntate e repliche su", pub_note: "Le nuove trame vengono pubblicate di norma il sabato.",
+    no_entity: "Entit\u00e0 dell'integrazione <b>Un Posto al Sole</b> non trovata. Verifica che l'integrazione sia configurata.",
+    foot: "Trame: TV Sorrisi e Canzoni \u00b7 Notizie: Google News e Bing News. Estratti a scopo informativo: il testo integrale \u00e8 sulle fonti originali. Progetto indipendente, non affiliato a Rai n\u00e9 ai produttori di \u00abUn posto al sole\u00bb.",
+    ago_min: "min fa", ago_h1: "ora", ago_h: "ore", ago_d1: "ieri", ago_d: "giorni fa", locale: "it-IT",
+    wd: ["domenica", "luned\u00ec", "marted\u00ec", "mercoled\u00ec", "gioved\u00ec", "venerd\u00ec", "sabato"],
+    mo: ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
+  },
+  en: {
+    today_on: "on air today", tonight: "Tonight on air", next_ep: "Next episode", this_week: "This week", next_week: "Next week",
+    prev_week: "Last week", yesterday: "Yesterday on air", recap: "Last week's recap", highlights: "In the spotlight",
+    waiting: "waiting for the new plots", not_yet: "The newsroom is at work: these plots are usually published the Saturday before.",
+    full_text: "Full text on", go_on: "Continue on", the_source: "the source", paused: "Not on air", reveal: "Tap to read (spoiler)",
+    web: "From the web", latest: "latest news", no_news: "No news available right now.", edition: "Online edition", updated: "Updated at",
+    trivia: "Did you know?", source: "Source", another_pill: "another one \u2192", another_char: "another character \u2192", in_plot: "In today's episode",
+    char_day: "Character of the day", played_by: "played by", weekly_chars: "Characters of the week", day: "day", days: "days",
+    next_air: "Next episode", where: "Where to watch", tomorrow: "Tomorrow", tonight2: "Tonight",
+    air_txt: "Rai 3, prime time (about {t}), subject to schedule changes.",
+    where_txt: "Live on Rai 3 Monday to Friday; episodes and replays on", pub_note: "New plots are usually published on Saturdays.",
+    no_entity: "The <b>Un Posto al Sole</b> integration entity was not found. Check that the integration is set up.",
+    foot: "Plots: TV Sorrisi e Canzoni \u00b7 News: Google News and Bing News. Excerpts for information only: the full text is on the original sources. Independent project, not affiliated with Rai or the producers of \u00abUn posto al sole\u00bb.",
+    ago_min: "min ago", ago_h1: "hour", ago_h: "hours", ago_d1: "yesterday", ago_d: "days ago", locale: "en-GB",
+    wd: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    mo: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+  },
+};
+let L = I18N.it; // lingua corrente (impostata da setConfig/hass)
 
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -22,8 +65,6 @@ const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? esc(u) : "#");
 const isoLocal = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-const WEEKDAY = ["domenica", "luned\u00ec", "marted\u00ec", "mercoled\u00ec", "gioved\u00ec", "venerd\u00ec", "sabato"];
-const MONTH = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
 
 const parseIso = (iso) => {
   const [y, m, d] = iso.split("-").map(Number);
@@ -31,7 +72,7 @@ const parseIso = (iso) => {
 };
 const dayLabel = (iso) => {
   const d = parseIso(iso);
-  return { wd: WEEKDAY[d.getDay()], num: d.getDate(), mon: MONTH[d.getMonth()].slice(0, 3) };
+  return { wd: L.wd[d.getDay()], num: d.getDate(), mon: L.mo[d.getMonth()].slice(0, 3) };
 };
 
 const relTime = (iso) => {
@@ -39,11 +80,11 @@ const relTime = (iso) => {
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) return "";
   const mins = Math.round((Date.now() - t) / 60000);
-  if (mins < 60) return `${Math.max(mins, 1)} min fa`;
+  if (mins < 60) return `${Math.max(mins, 1)} ${L.ago_min}`;
   const h = Math.round(mins / 60);
-  if (h < 24) return `${h} ${h === 1 ? "ora" : "ore"} fa`;
+  if (h < 24) return L.locale === "en-GB" ? `${h} ${h === 1 ? L.ago_h1 : L.ago_h} ago` : `${h} ${h === 1 ? L.ago_h1 : L.ago_h} fa`;
   const d = Math.round(h / 24);
-  return d === 1 ? "ieri" : `${d} giorni fa`;
+  return d === 1 ? L.ago_d1 : `${d} ${L.ago_d}`;
 };
 
 // Il titolo "di giornale" \u00e8 la prima frase dell'estratto, il resto \u00e8 il sommario.
@@ -80,8 +121,8 @@ const nextAir = (now) => {
     do { t.setDate(t.getDate() + 1); } while (weekend(t));
   }
   const diff = Math.round((t - day0) / 86400000);
-  const label = diff === 0 ? "Stasera" : diff === 1 ? "Domani" : WEEKDAY[t.getDay()].replace(/^./, (c) => c.toUpperCase());
-  return { label, wd: WEEKDAY[t.getDay()], num: t.getDate(), mon: MONTH[t.getMonth()] };
+  const label = diff === 0 ? L.tonight2 : diff === 1 ? L.tomorrow : L.wd[t.getDay()].replace(/^./, (c) => c.toUpperCase());
+  return { label, wd: L.wd[t.getDay()], num: t.getDate(), mon: L.mo[t.getMonth()] };
 };
 
 // Pillola "Lo sapevi che?": ricorrenza (campo "on" = MM-DD) oppure rotazione giornaliera. Stessa formula del sensore.
@@ -172,6 +213,17 @@ ha-card { overflow: hidden; }
 .char .by { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
 .char .an { font-style: italic; font-size: 13.5px; line-height: 1.45; margin: 6px 0 0; }
 .more { font-size: 12px; font-style: italic; margin-top: 6px; }
+.spoil { filter: blur(6px); cursor: pointer; user-select: none; transition: filter .2s; }
+.spoil.on { filter: none; cursor: auto; user-select: text; }
+.hint { font-size: 10.5px; color: var(--muted); font-style: italic; letter-spacing: .04em; }
+.item.pause .d b { color: var(--muted); text-decoration: line-through; }
+.item.pause p { font-style: italic; color: var(--muted); }
+details.recap { border-top: 1px solid var(--rule); padding: 8px 0; margin-bottom: 12px; }
+details.recap summary { cursor: pointer; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+.yday { border-left: 3px solid var(--muted); padding: 4px 0 4px 10px; margin: 0 0 14px; }
+.yday p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.45; }
+.paper.compact .mast .title { font-size: clamp(18px, 4.5vw, 24px); }
+.paper.compact .bar { margin-bottom: 10px; }
 .empty { font-style: italic; color: var(--muted); font-size: 13.5px; line-height: 1.45; padding: 6px 0; }
 .news { margin-bottom: 12px; }
 .nl { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 22px; }
@@ -186,19 +238,29 @@ a { color: var(--accent); }
 
 class UpasCard extends HTMLElement {
   setConfig(config) {
-    this._config = { show_news: true, max_news: 6, theme: "light", show_highlights: true, show_trivia: true, title: "La Gazzetta di Posillipo", ...config };
+    this._config = {
+      show_news: true, max_news: 6, theme: "light", show_highlights: true, show_trivia: true,
+      show_yesterday: true, show_recap: true, layout: "full", spoiler_free: false, language: "auto", ...config,
+    };
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+    this._revealed = this._revealed || new Set();
     this._render();
   }
 
   set hass(hass) {
     this._hass = hass;
     const ent = this._findEntity();
-    const sig = ent ? `${ent.state}|${ent.last_updated}|${isoLocal(new Date())}|${this._isDark()}` : "none";
+    const sig = ent ? `${ent.state}|${ent.last_updated}|${isoLocal(new Date())}|${this._isDark()}|${this._lang()}` : "none";
     if (sig !== this._sig) {
       this._sig = sig;
       this._render();
     }
+  }
+
+  _lang() {
+    const c = String(this._config?.language || "auto").toLowerCase();
+    if (c === "it" || c === "en") return c;
+    return String(this._hass?.locale?.language || this._hass?.language || "it").toLowerCase().startsWith("en") ? "en" : "it";
   }
 
   _isDark() {
@@ -209,11 +271,15 @@ class UpasCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 12;
+    return this._config?.layout === "compact" ? 6 : 12;
   }
 
   static getStubConfig() {
-    return { title: "La Gazzetta di Posillipo", max_news: 6, theme: "light" };
+    return { max_news: 6, theme: "light" };
+  }
+
+  static getConfigElement() {
+    return document.createElement("upas-card-editor");
   }
 
   _findEntity() {
@@ -223,20 +289,34 @@ class UpasCard extends HTMLElement {
     return id ? this._hass.states[id] : null;
   }
 
+  // Testo di una puntata; con spoiler_free le puntate da oggi in poi sono sfocate finche' non le tocchi.
+  _plot(day, todayIso, cls = "") {
+    const spoil = this._config.spoiler_free && day.date >= todayIso && !this._revealed.has(day.date);
+    const key = esc(day.date);
+    return spoil
+      ? `<p class="spoil ${cls}" data-spoil="${key}" title="${esc(L.reveal)}">${esc(day.excerpt)}</p>`
+      : `<p class="${cls}">${esc(day.excerpt)}</p>`;
+  }
+
   _dayItem(day, todayIso) {
     const l = dayLabel(day.date);
     const cls = day.date === todayIso ? "today" : day.date < todayIso ? "past" : "";
-    return `<div class="item ${cls}"><div class="d"><b>${esc(l.wd)}</b> ${l.num} ${esc(l.mon)}${day.date === todayIso ? " \u00b7 oggi in onda" : ""}</div><p>${esc(day.excerpt)}</p></div>`;
+    const paused = day.no_episode;
+    const tag = day.date === todayIso ? ` \u00b7 ${esc(L.today_on)}` : "";
+    const body = paused
+      ? `<p>${esc(L.paused)}: ${esc(day.pause_note || day.excerpt)}</p>`
+      : this._plot(day, todayIso);
+    return `<div class="item ${cls} ${paused ? "pause" : ""}"><div class="d"><b>${esc(l.wd)}</b> ${l.num} ${esc(l.mon)}${paused ? "" : tag}</div>${body}</div>`;
   }
 
   _weekColumn(title, week, todayIso) {
     if (!week) return "";
     let body;
     if (!week.available) {
-      body = `<div class="empty">La redazione \u00e8 al lavoro: queste trame vengono pubblicate di norma il sabato precedente.</div>`;
+      body = `<div class="empty">${esc(L.not_yet)}</div>`;
     } else {
       body = week.days.map((d) => this._dayItem(d, todayIso)).join("") +
-        `<div class="more">Testo integrale su <a href="${safeUrl(week.url)}" target="_blank" rel="noopener noreferrer">${esc(week.source)}</a> \u2192</div>`;
+        `<div class="more">${esc(L.full_text)} <a href="${safeUrl(week.url)}" target="_blank" rel="noopener noreferrer">${esc(week.source)}</a> \u2192</div>`;
     }
     return `<section class="col"><h3 class="sect">${esc(title)}<small>${esc(week.label)}</small></h3>${body}</section>`;
   }
@@ -244,21 +324,20 @@ class UpasCard extends HTMLElement {
   _highlights(attrs) {
     const days = [...(attrs.this_week?.days || []), ...(attrs.next_week?.days || [])];
     const nx = nextAir(new Date());
-    const names = featuredNames(days);
-    const next = attrs.next_week;
-    const range = next?.label ? `Le trame del ${esc(next.label)} saranno pubblicate di norma il sabato.` : "Le nuove trame vengono pubblicate di norma il sabato.";
+    const names = this._config.spoiler_free ? [] : featuredNames(days);
+    const t = String(attrs.air_time || "20:50").slice(0, 5);
     const chips = names.length
-      ? `<div class="item"><div class="d"><b>Personaggi della settimana</b></div><p class="chips">${names.map(([n, c]) => `<span>${esc(n)}<i>${c} ${c === 1 ? "giorno" : "giorni"}</i></span>`).join("")}</p></div>`
+      ? `<div class="item"><div class="d"><b>${esc(L.weekly_chars)}</b></div><p class="chips">${names.map(([n, c]) => `<span>${esc(n)}<i>${c} ${c === 1 ? L.day : L.days}</i></span>`).join("")}</p></div>`
       : "";
-    return `<section class="col"><h3 class="sect">In primo piano<small>in attesa delle nuove trame</small></h3>
-      <div class="item"><div class="d"><b>Prossima puntata</b></div><p>${esc(nx.label)}, ${esc(nx.wd)} ${nx.num} ${esc(nx.mon)} \u00b7 Rai 3, in prima serata (circa 20:50), salvo variazioni di palinsesto.</p></div>
+    return `<section class="col"><h3 class="sect">${esc(L.highlights)}<small>${esc(L.waiting)}</small></h3>
+      <div class="item"><div class="d"><b>${esc(L.next_air)}</b></div><p>${esc(nx.label.toLowerCase() === nx.wd ? "" : nx.label + ", ")}${esc(nx.wd)} ${nx.num} ${esc(nx.mon)} \u00b7 ${esc(L.air_txt.replace("{t}", t))}</p></div>
       ${chips}
-      <div class="item"><div class="d"><b>Dove guardarla</b></div><p>In diretta su Rai 3 dal luned\u00ec al venerd\u00ec; puntate e repliche su <a href="https://www.raiplay.it/programmi/unpostoalsole" target="_blank" rel="noopener noreferrer">RaiPlay</a>.</p></div>
-      <div class="more">${range}</div></section>`;
+      <div class="item"><div class="d"><b>${esc(L.where)}</b></div><p>${esc(L.where_txt)} <a href="https://www.raiplay.it/programmi/unpostoalsole" target="_blank" rel="noopener noreferrer">RaiPlay</a>.</p></div>
+      <div class="more">${esc(L.pub_note)}</div></section>`;
   }
 
   _lead(attrs, todayIso) {
-    const all = [...(attrs.this_week?.days || []), ...(attrs.next_week?.days || [])];
+    const all = [...(attrs.this_week?.days || []), ...(attrs.next_week?.days || [])].filter((d) => !d.no_episode);
     const src = (d) => (attrs.this_week?.days || []).includes(d) ? attrs.this_week : attrs.next_week;
     const today = all.find((d) => d.date === todayIso);
     const next = all.find((d) => d.date > todayIso);
@@ -266,10 +345,31 @@ class UpasCard extends HTMLElement {
     if (!pick) return "";
     const { head, body } = splitHeadline(pick.excerpt);
     const l = dayLabel(pick.date);
-    const kicker = today ? "Stasera in onda" : `Prossima puntata \u00b7 ${l.wd} ${l.num} ${l.mon}`;
+    const kicker = today ? L.tonight : `${L.next_ep} \u00b7 ${l.wd} ${l.num} ${l.mon}`;
     const week = src(pick);
-    return `<section class="lead"><div class="kicker">${esc(kicker)}</div><h2>${esc(head)}</h2>${body ? `<p>${esc(body)}</p>` : ""}
-      <div class="more"><a href="${safeUrl(week?.url)}" target="_blank" rel="noopener noreferrer">Continua su ${esc(week?.source || "la fonte")}</a> \u2192</div></section>`;
+    const spoil = this._config.spoiler_free && !this._revealed.has(pick.date);
+    const attr = spoil ? ` class="spoil" data-spoil="${esc(pick.date)}" title="${esc(L.reveal)}"` : "";
+    const compact = this._config.layout === "compact";
+    return `<section class="lead"><div class="kicker">${esc(kicker)}</div><h2${attr}>${esc(head)}</h2>${body && !compact ? `<p${attr}>${esc(body)}</p>` : ""}
+      <div class="more"><a href="${safeUrl(week?.url)}" target="_blank" rel="noopener noreferrer">${esc(L.go_on)} ${esc(week?.source || L.the_source)}</a> \u2192</div></section>`;
+  }
+
+  _yesterday(attrs) {
+    if (this._config.show_yesterday === false || !attrs.yesterday) return "";
+    const y = attrs.yesterday;
+    const l = dayLabel(y.date);
+    const txt = y.no_episode ? `${L.paused}: ${y.pause_note || y.excerpt}` : y.excerpt;
+    return `<section class="yday"><div class="kicker">${esc(L.yesterday)} \u00b7 ${esc(l.wd)} ${l.num} ${esc(l.mon)}</div><p>${esc(txt)}</p></section>`;
+  }
+
+  _recap(attrs) {
+    const w = attrs.previous_week;
+    if (this._config.show_recap === false || !w?.available) return "";
+    const rows = w.days.map((d) => {
+      const l = dayLabel(d.date);
+      return `<div class="item"><div class="d"><b>${esc(l.wd)}</b> ${l.num} ${esc(l.mon)}</div><p>${esc(d.no_episode ? `${L.paused}: ${d.pause_note || ""}` : d.excerpt)}</p></div>`;
+    }).join("");
+    return `<details class="recap"><summary>${esc(L.recap)} \u00b7 ${esc(w.label)}</summary>${rows}</details>`;
   }
 
   _trivia(attrs) {
@@ -278,8 +378,8 @@ class UpasCard extends HTMLElement {
     if (!pick) return "";
     const t = pick.item;
     const year = t.year ? `<div class="yr">${esc(t.year)}</div>` : `<div class="yr q">?</div>`;
-    return `<section class="trivia">${year}<div class="tb"><div class="kicker">Lo sapevi che?</div><div class="tt">${esc(t.title)}</div><p>${esc(t.text)}</p>
-      <div class="tf"><span>Fonte: <a href="${safeUrl(t.url)}" target="_blank" rel="noopener noreferrer">${esc(t.source)}</a></span><span>${pick.pos}/${pick.total} \u00b7 <button type="button" class="tbtn">un'altra pillola \u2192</button></span></div></div></section>`;
+    return `<section class="trivia">${year}<div class="tb"><div class="kicker">${esc(L.trivia)}</div><div class="tt">${esc(t.title)}</div><p>${esc(t.text)}</p>
+      <div class="tf"><span>${esc(L.source)}: <a href="${safeUrl(t.url)}" target="_blank" rel="noopener noreferrer">${esc(t.source)}</a></span><span>${pick.pos}/${pick.total} \u00b7 <button type="button" class="tbtn">${esc(L.another_pill)}</button></span></div></div></section>`;
   }
 
   _characterBox(attrs, todayIso) {
@@ -289,52 +389,67 @@ class UpasCard extends HTMLElement {
     const c = p.item;
     const dir = safePhotoDir(this._config.photos_path);
     const img = dir ? `<img src="${esc(dir)}/${esc(c.photo || c.id)}.jpg" alt="" loading="lazy">` : "";
-    return `<section class="tbox"><div class="kicker">${p.inPlot ? "Nella puntata di oggi" : "Personaggio del giorno"}</div>
+    const inPlot = p.inPlot && !this._config.spoiler_free;
+    return `<section class="tbox"><div class="kicker">${inPlot ? esc(L.in_plot) : esc(L.char_day)}</div>
       <div class="char"><div class="av">${esc(initials(c.name))}${img}</div><div>
-      <div class="nm">${esc(c.name)}</div><div class="by">interpretato da ${esc(c.actor)}</div>
+      <div class="nm">${esc(c.name)}</div><div class="by">${esc(L.played_by)} ${esc(c.actor)}</div>
       <p class="tx">${esc(c.caption)}</p>${c.anecdote ? `<p class="an">\u00ab${esc(c.anecdote)}\u00bb</p>` : ""}</div></div>
-      <div class="src">Fonte: <a href="${safeUrl(c.url)}" target="_blank" rel="noopener noreferrer">${esc(c.source)}</a> \u00b7 <button class="btn" data-act="char">un altro personaggio \u2192</button></div></section>`;
+      <div class="src">${esc(L.source)}: <a href="${safeUrl(c.url)}" target="_blank" rel="noopener noreferrer">${esc(c.source)}</a> \u00b7 <button class="btn" data-act="char">${esc(L.another_char)}</button></div></section>`;
   }
 
   _news(attrs) {
     if (!this._config.show_news) return "";
-    const items = (attrs.news || []).slice(0, Number(this._config.max_news) || 6);
+    const cap = this._config.layout === "compact" ? Math.min(3, Number(this._config.max_news) || 3) : Number(this._config.max_news) || 6;
+    const items = (attrs.news || []).slice(0, cap);
     const body = items.length
       ? items.map((n) => `<div class="item"><a class="h" href="${safeUrl(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a>
           <div class="m">${esc(n.source)}${n.source && n.published ? " \u00b7 " : ""}${esc(relTime(n.published))}</div></div>`).join("")
-      : `<div class="empty">Nessuna notizia disponibile al momento.</div>`;
-    return `<section class="news"><h3 class="sect">Dal web<small>ultime notizie</small></h3><div class="nl">${body}</div></section>`;
+      : `<div class="empty">${esc(L.no_news)}</div>`;
+    return `<section class="news"><h3 class="sect">${esc(L.web)}<small>${esc(L.latest)}</small></h3><div class="nl">${body}</div></section>`;
   }
 
   _render() {
     if (!this.shadowRoot || !this._config) return;
+    L = I18N[this._lang()];
     const ent = this._findEntity();
+    const compact = this._config.layout === "compact";
     let inner;
     if (!this._hass) {
       inner = "";
     } else if (!ent) {
-      inner = `<div class="err">Entit\u00e0 dell'integrazione <b>Un Posto al Sole</b> non trovata. Verifica che l'integrazione sia configurata.</div>`;
+      inner = `<div class="err">${L.no_entity}</div>`;
     } else {
       const a = ent.attributes || {};
       const now = new Date();
       const todayIso = isoLocal(now);
       const upd = ent.state && ent.state !== "unknown" && ent.state !== "unavailable" ? new Date(ent.state) : null;
-      const updTxt = upd && !Number.isNaN(upd.getTime()) ? upd.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "\u2014";
+      const updTxt = upd && !Number.isNaN(upd.getTime()) ? upd.toLocaleTimeString(L.locale, { hour: "2-digit", minute: "2-digit" }) : "\u2014";
+      const title = this._config.title || a.masthead_title || "Un Posto al Sole";
+      const nextCol = a.next_week?.available || this._config.show_highlights === false
+        ? this._weekColumn(L.next_week, a.next_week, todayIso) : this._highlights(a);
       inner = `
-        <header class="mast"><div class="title"><span class="sun">\u2600</span> ${esc(this._config.title)}</div></header>
-        <div class="bar"><span>${esc(WEEKDAY[now.getDay()])} ${now.getDate()} ${esc(MONTH[now.getMonth()])} ${now.getFullYear()}</span><span>Edizione online</span><span>Aggiornata alle ${esc(updTxt)}</span></div>
+        <header class="mast"><div class="title"><span class="sun">\u2600</span> ${esc(title)}</div></header>
+        <div class="bar"><span>${esc(L.wd[now.getDay()])} ${now.getDate()} ${esc(L.mo[now.getMonth()])} ${now.getFullYear()}</span>${compact ? "" : `<span>${esc(L.edition)}</span>`}<span>${esc(L.updated)} ${esc(updTxt)}</span></div>
         ${this._lead(a, todayIso)}
-        <div class="cols">${this._weekColumn("Questa settimana", a.this_week, todayIso)}${a.next_week?.available || this._config.show_highlights === false ? this._weekColumn("Settimana prossima", a.next_week, todayIso) : this._highlights(a)}</div>
-        ${this._trivia(a)}
-        ${this._config.show_trivia === false ? "" : this._characterBox(a, todayIso)}
+        ${compact ? "" : this._yesterday(a)}
+        ${compact ? "" : `<div class="cols">${this._weekColumn(L.this_week, a.this_week, todayIso)}${nextCol}</div>`}
+        ${compact ? "" : this._recap(a)}
+        ${compact ? "" : this._trivia(a)}
+        ${compact || this._config.show_trivia === false ? "" : this._characterBox(a, todayIso)}
         ${this._news(a)}
-        <div class="foot">Trame: TV Sorrisi e Canzoni \u00b7 Notizie: Google News e Bing News. Estratti a scopo informativo: il testo integrale \u00e8 sulle fonti originali. Progetto indipendente, non affiliato a Rai n\u00e9 ai produttori di \u00abUn posto al sole\u00bb.</div>`;
+        <div class="foot">${esc(L.foot)}</div>`;
     }
     const dark = this._isDark();
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div class="paper ${dark ? "dark" : ""}">${inner}</div></ha-card>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div class="paper ${dark ? "dark" : ""} ${compact ? "compact" : ""}">${inner}</div></ha-card>`;
     this.shadowRoot.querySelectorAll(".btn").forEach((b) =>
       b.addEventListener("click", () => {
         this._cskip = (this._cskip || 0) + 1;
+        this._render();
+      })
+    );
+    this.shadowRoot.querySelectorAll("[data-spoil]").forEach((el) =>
+      el.addEventListener("click", () => {
+        this._revealed.add(el.dataset.spoil);
         this._render();
       })
     );
@@ -345,7 +460,72 @@ class UpasCard extends HTMLElement {
   }
 }
 
+// ---- Editor visivo (Impostazioni della card)
+const EDITOR_LABELS = {
+  it: { title: "Titolo della testata (vuoto = dalle opzioni)", theme: "Tema", layout: "Aspetto", language: "Lingua", max_news: "Numero di notizie",
+    show_news: "Mostra le notizie", show_trivia: "Mostra \u00abLo sapevi che?\u00bb e personaggio", show_highlights: "Mostra \u00abIn primo piano\u00bb",
+    show_yesterday: "Mostra \u00abIeri in onda\u00bb", show_recap: "Mostra il riepilogo della settimana scorsa", spoiler_free: "Modalit\u00e0 senza spoiler",
+    photos_path: "Cartella foto locali (facoltativa, es. /local/upas)", entity: "Entit\u00e0 (facoltativa)" },
+  en: { title: "Masthead title (empty = from options)", theme: "Theme", layout: "Layout", language: "Language", max_news: "Number of news items",
+    show_news: "Show news", show_trivia: "Show \u201cDid you know?\u201d and character", show_highlights: "Show \u201cIn the spotlight\u201d",
+    show_yesterday: "Show \u201cYesterday on air\u201d", show_recap: "Show last week's recap", spoiler_free: "Spoiler-free mode",
+    photos_path: "Local photos folder (optional, e.g. /local/upas)", entity: "Entity (optional)" },
+};
+
+class UpasCardEditor extends HTMLElement {
+  setConfig(config) {
+    this._config = config;
+    this._build();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (this._form) this._form.hass = hass;
+    else this._build();
+  }
+
+  _build() {
+    if (!this._config) return;
+    const lang = String(this._hass?.locale?.language || "it").startsWith("en") ? "en" : "it";
+    const T = EDITOR_LABELS[lang];
+    const opt = (v, l) => ({ value: v, label: l });
+    const schema = [
+      { name: "title", selector: { text: {} } },
+      { name: "layout", selector: { select: { mode: "dropdown", options: [opt("full", lang === "en" ? "Full" : "Completa"), opt("compact", lang === "en" ? "Compact" : "Compatta")] } } },
+      { name: "theme", selector: { select: { mode: "dropdown", options: [opt("light", lang === "en" ? "Light" : "Chiaro"), opt("dark", lang === "en" ? "Dark" : "Scuro"), opt("auto", "Auto")] } } },
+      { name: "language", selector: { select: { mode: "dropdown", options: [opt("auto", "Auto"), opt("it", "Italiano"), opt("en", "English")] } } },
+      { name: "max_news", selector: { number: { min: 1, max: 30, mode: "box" } } },
+      { name: "show_news", selector: { boolean: {} } },
+      { name: "show_trivia", selector: { boolean: {} } },
+      { name: "show_highlights", selector: { boolean: {} } },
+      { name: "show_yesterday", selector: { boolean: {} } },
+      { name: "show_recap", selector: { boolean: {} } },
+      { name: "spoiler_free", selector: { boolean: {} } },
+      { name: "photos_path", selector: { text: {} } },
+      { name: "entity", selector: { entity: { domain: "sensor" } } },
+    ];
+    if (!this._form) {
+      this._form = document.createElement("ha-form");
+      this._form.addEventListener("value-changed", (ev) => {
+        const cfg = { ...ev.detail.value };
+        for (const k of Object.keys(cfg)) if (cfg[k] === "" || cfg[k] === undefined) delete cfg[k];
+        this._config = { type: "custom:upas-card", ...cfg };
+        this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true }));
+      });
+      this.appendChild(this._form);
+    }
+    this._form.hass = this._hass;
+    this._form.schema = schema;
+    this._form.computeLabel = (s) => T[s.name] || s.name;
+    this._form.data = {
+      layout: "full", theme: "light", language: "auto", max_news: 6, show_news: true, show_trivia: true,
+      show_highlights: true, show_yesterday: true, show_recap: true, spoiler_free: false, ...this._config,
+    };
+  }
+}
+
 if (!customElements.get("upas-card")) customElements.define("upas-card", UpasCard);
+if (!customElements.get("upas-card-editor")) customElements.define("upas-card-editor", UpasCardEditor);
 window.customCards = window.customCards || [];
 if (!window.customCards.some((c) => c.type === "upas-card")) {
   window.customCards.push({

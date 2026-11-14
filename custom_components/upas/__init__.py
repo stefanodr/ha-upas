@@ -2,12 +2,17 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from pathlib import Path
+
+import voluptuous as vol
 
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
@@ -47,8 +52,38 @@ async def _async_ensure_resource(hass: HomeAssistant, url: str) -> None:
         _LOGGER.debug("Registrazione automatica della risorsa non riuscita: %s", err)
 
 
+SCOPES = ("today", "yesterday", "this_week", "next_week", "previous_week", "news")
+SERVICE_GET_SUMMARY = "get_summary"
+SUMMARY_SCHEMA = vol.Schema({vol.Optional("scope", default="today"): vol.In(SCOPES)})
+
+
+async def _async_get_summary(call: ServiceCall) -> dict:
+    """Riepilogo in forma di dati: pensato per Assist, LLM e script."""
+    hass = call.hass
+    entries = hass.config_entries.async_loaded_entries(DOMAIN)
+    if not entries:
+        raise ServiceValidationError("Un Posto al Sole non \u00e8 configurato")
+    coord: UpasCoordinator = entries[0].runtime_data
+    scope = call.data["scope"]
+    today = dt_util.now().date()
+    weeks = (coord.data or {}).get("weeks", {})
+    if scope in ("today", "yesterday"):
+        day = today if scope == "today" else today - timedelta(days=1)
+        return {"scope": scope, "date": day.isoformat(), "episode": coord.episode_for(day)}
+    if scope == "news":
+        return {"scope": scope, "articles": (coord.data or {}).get("news", [])}
+    return {"scope": scope, "week": weeks.get(scope.removesuffix("_week"))}
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Serve e registra la card Lovelace inclusa nell'integrazione."""
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_SUMMARY,
+        _async_get_summary,
+        schema=SUMMARY_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
     card = Path(__file__).parent / "frontend" / CARD_FILENAME
     url = f"{FRONTEND_URL_BASE}/{CARD_FILENAME}"
     await hass.http.async_register_static_paths(

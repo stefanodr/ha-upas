@@ -46,7 +46,10 @@ async def test_setup_and_sensors(hass: HomeAssistant, aioclient_mock) -> None:
 
     reg = er.async_get(hass)
     ids = {e.unique_id.split("_", 1)[1]: e.entity_id for e in er.async_entries_for_config_entry(reg, entry.entry_id)}
-    assert set(ids) == {"edition", "today", "this_week", "next_week", "news", "trivia", "character"}
+    assert set(ids) == {
+        "edition", "today", "yesterday", "this_week", "next_week", "previous_week",
+        "news", "trivia", "character", "calendar", "event",
+    }
 
     this_week = hass.states.get(ids["this_week"])
     assert this_week.state == "19–23 ottobre"
@@ -111,7 +114,7 @@ async def test_news_disabled_and_options_flow(hass: HomeAssistant, aioclient_moc
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "form"
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"scan_interval": 180, "news_enabled": True, "max_news": 4}
+        result["flow_id"], {"scan_interval": 180, "news_enabled": True, "max_news": 4, "news_sources": ["google"], "news_blocklist": "", "masthead_title": "La Gazzetta di Napoli", "air_time": "20:50:00"}
     )
     assert result["type"] == "create_entry"
     await hass.async_block_till_done()
@@ -124,7 +127,7 @@ async def test_config_flow_single_instance(hass: HomeAssistant, aioclient_mock) 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
     assert result["type"] == "form"
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"scan_interval": 360, "news_enabled": True, "max_news": 10}
+        result["flow_id"], {"scan_interval": 360, "news_enabled": True, "max_news": 10, "news_sources": ["google", "bing"], "news_blocklist": "", "masthead_title": "Un Posto al Sole", "air_time": "20:50:00"}
     )
     assert result["type"] == "create_entry"
     assert result["options"]["scan_interval"] == 360

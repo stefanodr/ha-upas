@@ -1,0 +1,12 @@
+# Notifica quando esce la trama della settimana dopo
+alias: UPAS - nuova trama pubblicata
+triggers:
+  - trigger: event
+    event_type: upas_event
+    event_data:
+      type: week_published
+actions:
+  - action: notify.notify
+    data:
+      title: "Un Posto al Sole"
+      message: "Disponibili le trame del {{ trigger.event.data.label }}: {{ trigger.event.data.url }}"

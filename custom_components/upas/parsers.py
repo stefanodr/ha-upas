@@ -176,11 +176,14 @@ def parse_week_article(html: str, monday: date, url: str, source: str) -> dict[s
                 parts.append(clean(nxt.get_text(" ", strip=True)))
         text = " ".join(parts)
         if text:
+            paused = detect_pause(text)
             days.append(
                 {
                     "date": day.isoformat(),
                     "weekday": WEEKDAYS[day.weekday()] if day.weekday() < 5 else "",
                     "excerpt": make_excerpt(text),
+                    "no_episode": paused,
+                    "pause_note": make_excerpt(text, 140) if paused else "",
                 }
             )
     if not days:
@@ -199,6 +202,18 @@ def parse_week_article(html: str, monday: date, url: str, source: str) -> dict[s
         "source": source,
         "days": sorted(days, key=lambda d: d["date"]),
     }
+
+
+_PAUSE = re.compile(
+    r"non (va|andra|andr\u00e0) in onda|puntata (e )?sospesa|sospesa per|salta (la )?puntata|"
+    r"al suo posto|in replica|non viene trasmess",
+    re.I,
+)
+
+
+def detect_pause(text: str) -> bool:
+    """True se il testo del giorno dice che la puntata non va in onda."""
+    return bool(_PAUSE.search(_fold(text)))
 
 
 def empty_week(monday: date) -> dict[str, Any]:
@@ -279,3 +294,16 @@ def parse_news_rss(xml_text: str, limit: int) -> list[dict[str, Any]]:
         )
     items.sort(key=lambda i: i["published"], reverse=True)
     return items[:limit]
+
+
+def filter_news(items: list[dict[str, Any]], blocklist: list[str]) -> list[dict[str, Any]]:
+    """Scarta le notizie che contengono una delle parole bloccate (titolo o testata)."""
+    words = [_fold(w) for w in blocklist if w.strip()]
+    if not words:
+        return items
+    return [i for i in items if not any(w in _fold(f"{i['title']} {i['source']}") for w in words)]
+
+
+def split_words(text: str | None) -> list[str]:
+    """"calcio, gossip" -> ["calcio", "gossip"]."""
+    return [w.strip() for w in re.split(r"[,;\n]", text or "") if w.strip()]
