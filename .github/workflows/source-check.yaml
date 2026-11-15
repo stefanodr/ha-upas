@@ -1,0 +1,21 @@
+name: Source check
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"   # ogni lunedi alle 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install beautifulsoup4
+      - name: Controlla le fonti reali con i parser
+        run: python scripts/check_sources.py

@@ -1,0 +1,63 @@
+blueprint:
+  name: Un Posto al Sole - promemoria della puntata / episode reminder
+  description: >
+    Notifica poco prima della puntata, con o senza anticipazione (modalita senza spoiler).
+    / Notifies shortly before the episode, with or without the plot (spoiler-free mode).
+  domain: automation
+  source_url: https://github.com/stefanodr/ha-upas/blob/main/blueprints/automation/upas/notify_tonight.yaml
+  input:
+    calendar:
+      name: Calendario "Puntate" / "Episodes" calendar
+      selector:
+        entity:
+          filter:
+            - integration: upas
+              domain: calendar
+    offset:
+      name: Anticipo / Lead time
+      default: "-00:15:00"
+      selector:
+        select:
+          options:
+            - label: 5 min
+              value: "-00:05:00"
+            - label: 15 min
+              value: "-00:15:00"
+            - label: 30 min
+              value: "-00:30:00"
+            - label: 1 h
+              value: "-01:00:00"
+    spoiler_free:
+      name: Senza spoiler / Spoiler-free
+      description: Se attivo il messaggio non contiene la trama. / If on, the message has no plot.
+      default: true
+      selector:
+        boolean:
+    notify:
+      name: Azione di notifica / Notification action
+      description: >
+        Azione da eseguire. Disponibili le variabili `title` e `message`
+        (es. notify.mobile_app_telefono con data title/message).
+      selector:
+        action:
+
+mode: single
+variables:
+  spoiler_free: !input spoiler_free
+trigger:
+  - trigger: calendar
+    event: start
+    entity_id: !input calendar
+    offset: !input offset
+action:
+  - variables:
+      title: Un Posto al Sole
+      message: >-
+        {% set ev = trigger.calendar_event %}
+        {% if spoiler_free %}
+          Tra poco su Rai 3: Un posto al sole.
+        {% else %}
+          {{ (ev.description or '').split('\n')[0] }}
+        {% endif %}
+  - choose: []
+    default: !input notify

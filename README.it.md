@@ -17,6 +17,14 @@ Anticipazioni **giorno per giorno della settimana corrente e della successiva**,
 
 > Progetto indipendente della community, non affiliato a Rai né ai produttori di «Un posto al sole».
 
+## Novità della 1.1
+- **Seconda fonte per le trame (ripiego):** se TV Sorrisi e Canzoni non ha l'articolo di una settimana, l'integrazione prova DiLei (articoli scoperti tramite il feed delle notizie). La settimana mostra la fonte reale.
+- **Il riepilogo della settimana scorsa funziona dal primo giorno:** alla prima installazione la settimana precedente viene recuperata una volta.
+- **Nuove entità:** sensori *Prossima pausa* e *Puntate di fila*, pulsante **Aggiorna ora**. L'avviso in Riparazioni ha ora l'azione **Riprova ora**.
+- **Card:** i personaggi della settimana sono **cliccabili** (apre la scheda) e le etichette delle settimane vengono tradotte con la card in inglese.
+- **Blueprint** per il promemoria prima della puntata, con opzione **senza spoiler**.
+- **Controllo settimanale delle fonti** (GitHub Actions) per accorgersi presto di un cambio di struttura; 7 nuove pillole.
+
 ## Novità della 1.0
 - **Ieri in onda** e **riepilogo della settimana scorsa** (a scomparsa), grazie a un archivio che resta anche dopo i riavvii.
 - **Giorni senza puntata** riconosciuti (es. pause o eventi sportivi) e mostrati come tali.
@@ -108,6 +116,9 @@ Se un file manca, resta il monogramma.
 | Personaggio del giorno | nome e interprete | `role`, `caption`, `source`, `in_todays_plot` |
 | Notizie | numero di notizie | `articles[]` (titolo, testata, url, data) |
 | Lo sapevi che | testo della pillola del giorno | `year`, `title`, `text`, `source`, `url` |
+| Prossima pausa | data del prossimo giorno senza puntata, o «Nessuna pausa nota» | `days_until`, `note`, `url` |
+| Puntate di fila | puntate consecutive note da oggi | |
+| Aggiorna ora (pulsante) | forza l'aggiornamento | |
 | Puntate (calendario) | prossima puntata | eventi alle ore di messa in onda |
 | Messa in onda (evento) | ultimo evento | `week_published`, `episode_starting` |
 
@@ -124,6 +135,11 @@ data:
   scope: today
 response_variable: puntata
 ```
+
+### Blueprint: promemoria prima della puntata
+Promemoria poco prima dell'inizio, con o senza anticipazione (opzione senza spoiler):
+
+[![Importa il blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fstefanodr%2Fha-upas%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fupas%2Fnotify_tonight.yaml)
 
 ## Esempio di dashboard
 Per una pagina a tutto schermo crea una vista di tipo **Pannello (1 scheda)** e inserisci la card; un esempio è in [`examples/dashboard.yaml`](examples/dashboard.yaml).
@@ -153,6 +169,9 @@ logger:
   logs:
     custom_components.upas: debug
 ```
+
+## Controllo delle fonti
+Una GitHub Action gira ogni lunedì (`scripts/check_sources.py`) e fallisce se i parser non riescono più a leggere le fonti reali, così i cambi di struttura si notano subito. In locale: `python scripts/check_sources.py`.
 
 ## Sviluppo
 ```bash

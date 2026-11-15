@@ -1,18 +1,59 @@
 {
   "entity": {
     "sensor": {
-      "edition": {"default": "mdi:newspaper-variant-outline"},
-      "today": {"default": "mdi:television-classic"},
-      "yesterday": {"default": "mdi:television-classic-off"},
-      "this_week": {"default": "mdi:calendar-week"},
-      "next_week": {"default": "mdi:calendar-arrow-right"},
-      "previous_week": {"default": "mdi:calendar-arrow-left"},
-      "trivia": {"default": "mdi:lightbulb-on-outline"},
-      "character": {"default": "mdi:account-star"},
-      "news": {"default": "mdi:newspaper-variant-multiple"}
+      "edition": {
+        "default": "mdi:newspaper-variant-outline"
+      },
+      "today": {
+        "default": "mdi:television-classic"
+      },
+      "yesterday": {
+        "default": "mdi:television-classic-off"
+      },
+      "this_week": {
+        "default": "mdi:calendar-week"
+      },
+      "next_week": {
+        "default": "mdi:calendar-arrow-right"
+      },
+      "previous_week": {
+        "default": "mdi:calendar-arrow-left"
+      },
+      "trivia": {
+        "default": "mdi:lightbulb-on-outline"
+      },
+      "character": {
+        "default": "mdi:account-star"
+      },
+      "news": {
+        "default": "mdi:newspaper-variant-multiple"
+      },
+      "next_break": {
+        "default": "mdi:calendar-remove"
+      },
+      "streak": {
+        "default": "mdi:counter"
+      }
     },
-    "calendar": {"episodes": {"default": "mdi:television-classic"}},
-    "event": {"broadcast": {"default": "mdi:bell-ring-outline"}}
+    "calendar": {
+      "episodes": {
+        "default": "mdi:television-classic"
+      }
+    },
+    "event": {
+      "broadcast": {
+        "default": "mdi:bell-ring-outline"
+      }
+    },
+    "button": {
+      "refresh": {
+        "default": "mdi:refresh"
+      }
+    }
   },
-  "services": {"get_summary": {"service": "mdi:text-box-search-outline"}}
+  "services": {
+    "get_summary": {
+      "service": "mdi:text-box-search-outline"
+    }
+  }
 }

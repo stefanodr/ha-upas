@@ -60,6 +60,13 @@
       },
       "previous_week": {
         "name": "Last week"
+      },
+      "next_break": {
+        "name": "Next break"
+      },
+      "streak": {
+        "name": "Episodes in a row",
+        "unit_of_measurement": "episodes"
       }
     },
     "calendar": {
@@ -79,12 +86,25 @@
           }
         }
       }
+    },
+    "button": {
+      "refresh": {
+        "name": "Refresh now"
+      }
     }
   },
   "issues": {
     "sources_unreachable": {
       "title": "Sources unreachable",
-      "description": "Plot and news sources have not responded for several updates. The integration keeps retrying; if it persists check Home Assistant's connection or open an issue on GitHub."
+      "description": "Plot and news sources have not responded for several updates. The integration keeps retrying; if it persists check Home Assistant's connection or open an issue on GitHub.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Retry now",
+            "description": "Press Submit to retry the sources right away."
+          }
+        }
+      }
     }
   },
   "services": {

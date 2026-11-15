@@ -1,4 +1,5 @@
 """Test di integrazione con rete simulata."""
+import re
 from pathlib import Path
 
 from freezegun import freeze_time
@@ -8,7 +9,7 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
-from custom_components.upas.const import DOMAIN, NEWS_URL, NEWS_URL_BING, PLOTS_TAG_URL
+from custom_components.upas.const import ALT_DISCOVERY_URL, DOMAIN, NEWS_URL, NEWS_URL_BING, PLOTS_TAG_URL
 
 FIX = Path(__file__).parent / "fixtures"
 WEEK_URL = "https://www.sorrisi.com/tv/soap/un-posto-al-sole-le-trame-dal-19-al-23-ottobre-2026/"
@@ -16,7 +17,10 @@ NEXT_URL = "https://www.sorrisi.com/tv/soap/un-posto-al-sole-le-trame-dal-26-al-
 NOV_URL = "https://www.sorrisi.com/tv/soap/un-posto-al-sole-le-trame-dal-2-al-6-novembre-2026/"
 
 
-def _mock(aioclient_mock: AiohttpClientMocker, next_week: bool = False) -> None:
+EMPTY_RSS = '<?xml version="1.0"?><rss version="2.0"><channel><title>x</title></channel></rss>'
+
+
+def _mock(aioclient_mock: AiohttpClientMocker, next_week: bool = False, alt_discovery: str = EMPTY_RSS) -> None:
     aioclient_mock.get(PLOTS_TAG_URL, text=(FIX / "tag_page.html").read_text())
     aioclient_mock.get(WEEK_URL, text=(FIX / "week_19_23_ott.html").read_text())
     if next_week:
@@ -27,6 +31,8 @@ def _mock(aioclient_mock: AiohttpClientMocker, next_week: bool = False) -> None:
     else:
         aioclient_mock.get(NEXT_URL, status=404)
     aioclient_mock.get(NOV_URL, status=404)
+    aioclient_mock.get(ALT_DISCOVERY_URL, text=alt_discovery)
+    aioclient_mock.get(re.compile(r"https://www\.sorrisi\.com/tv/soap/un-posto-al-sole-le-trame-dal-.*"), status=404)
     aioclient_mock.get(NEWS_URL, text=(FIX / "news.xml").read_text())
     aioclient_mock.get(NEWS_URL_BING, text=(FIX / "news_bing.xml").read_text())
 
@@ -48,7 +54,7 @@ async def test_setup_and_sensors(hass: HomeAssistant, aioclient_mock) -> None:
     ids = {e.unique_id.split("_", 1)[1]: e.entity_id for e in er.async_entries_for_config_entry(reg, entry.entry_id)}
     assert set(ids) == {
         "edition", "today", "yesterday", "this_week", "next_week", "previous_week",
-        "news", "trivia", "character", "calendar", "event",
+        "news", "trivia", "character", "calendar", "event", "next_break", "streak", "refresh",
     }
 
     this_week = hass.states.get(ids["this_week"])

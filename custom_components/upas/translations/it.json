@@ -60,6 +60,13 @@
       },
       "previous_week": {
         "name": "Settimana scorsa"
+      },
+      "next_break": {
+        "name": "Prossima pausa"
+      },
+      "streak": {
+        "name": "Puntate di fila",
+        "unit_of_measurement": "puntate"
       }
     },
     "calendar": {
@@ -79,12 +86,25 @@
           }
         }
       }
+    },
+    "button": {
+      "refresh": {
+        "name": "Aggiorna ora"
+      }
     }
   },
   "issues": {
     "sources_unreachable": {
       "title": "Fonti non raggiungibili",
-      "description": "Le fonti di trame e notizie non rispondono da diversi aggiornamenti. L'integrazione riprova da sola; se il problema persiste controlla la connessione di Home Assistant o segnala il problema su GitHub."
+      "description": "Le fonti di trame e notizie non rispondono da diversi aggiornamenti. L'integrazione riprova da sola; se il problema persiste controlla la connessione di Home Assistant o segnala il problema su GitHub.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Riprova ora",
+            "description": "Premi Invia per riprovare subito ad aggiornare le fonti."
+          }
+        }
+      }
     }
   },
   "services": {

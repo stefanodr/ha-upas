@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 DOMAIN = "upas"
-PLATFORMS = ["sensor", "calendar", "event"]
+PLATFORMS = ["sensor", "calendar", "event", "button"]
 
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_NEWS_ENABLED = "news_enabled"
@@ -34,6 +34,16 @@ PLOTS_ARTICLE_URL = (
     PLOTS_BASE + "/tv/soap/un-posto-al-sole-le-trame-dal-{span}-{year}/"
 )
 PLOTS_SOURCE_NAME = "TV Sorrisi e Canzoni"
+
+# Seconda fonte (ripiego): DiLei. Gli URL contengono un id numerico non
+# prevedibile e la pagina indice non e' leggibile: gli articoli si scoprono
+# dal feed di Bing News (ricerca ristretta al sito).
+ALT_SOURCE_NAME = "DiLei"
+ALT_DISCOVERY_URL = (
+    "https://www.bing.com/news/search?"
+    "q=site%3Adilei.it+%22un+posto+al+sole%22+anticipazioni+settimana&format=rss&setlang=it&cc=IT"
+)
+ALT_ARTICLE_MARK = "un-posto-al-sole-anticipazioni-trame-settimana-"
 
 # Notizie generali: feed RSS (solo titolo, testata e data), unite e deduplicate.
 NEWS_URL = (

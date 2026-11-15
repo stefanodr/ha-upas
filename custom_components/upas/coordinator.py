@@ -15,6 +15,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ALT_ARTICLE_MARK,
+    ALT_DISCOVERY_URL,
+    ALT_SOURCE_NAME,
     ARCHIVE_WEEKS,
     BUS_EVENT,
     CONF_MAX_NEWS,
@@ -41,6 +44,7 @@ from .const import (
 from .trivia import load_characters, load_trivia
 from .parsers import (
     empty_week,
+    extract_alt_links,
     extract_week_links,
     filter_news,
     merge_news,
@@ -76,6 +80,8 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._failures = 0
         self._fresh_plots = False
         self._fresh_news = False
+        self._alt_links: dict[date, str] | None = None
+        self._backfill_tried: set[date] = set()
 
     async def _async_setup(self) -> None:
         """Carica pillole, personaggi e archivio delle settimane gia' viste."""
@@ -103,6 +109,28 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return None
 
     # ------------------------------------------------------------ trame
+    async def _fetch_alt_week(self, monday: date) -> dict[str, Any] | None:
+        """Ripiego: seconda fonte (scoperta dal feed, una volta per aggiornamento)."""
+        if self._alt_links is None:
+            xml_text = await self._get(ALT_DISCOVERY_URL)
+            self._alt_links = (
+                await self.hass.async_add_executor_job(extract_alt_links, xml_text, ALT_ARTICLE_MARK)
+                if xml_text
+                else {}
+            )
+        url = self._alt_links.get(monday)
+        if not url:
+            return None
+        html = await self._get(url)
+        if not html:
+            return None
+        week = await self.hass.async_add_executor_job(
+            parse_week_article, html, monday, url, ALT_SOURCE_NAME
+        )
+        if week:
+            _LOGGER.debug("Trame %s prese dalla seconda fonte %s", week["label"], url)
+        return week
+
     async def _fetch_week(
         self, monday: date, links: dict[date, str]
     ) -> dict[str, Any] | None:
@@ -126,7 +154,7 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
             if week:
                 return week
-        return None
+        return await self._fetch_alt_week(monday)
 
     async def _fetch_plots(self, monday: date) -> dict[str, dict[str, Any]]:
         tag_html = await self._get(PLOTS_TAG_URL)
@@ -136,6 +164,7 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 extract_week_links, tag_html, PLOTS_BASE
             )
         weeks: dict[str, dict[str, Any]] = {}
+        self._alt_links = None
         self._fresh_plots = bool(tag_html)
         for key, start in (("this", monday), ("next", monday + timedelta(days=7))):
             week = await self._fetch_week(start, links)
@@ -148,8 +177,13 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 else:
                     week = self._archive.get(start.isoformat()) or empty_week(start)
             weeks[key] = week
-        prev_start = (monday - timedelta(days=7)).isoformat()
-        weeks["previous"] = self._archive.get(prev_start) or empty_week(monday - timedelta(days=7))
+        prev_monday = monday - timedelta(days=7)
+        prev = self._archive.get(prev_monday.isoformat())
+        if prev is None and prev_monday not in self._backfill_tried:
+            # Prima installazione: recupera una volta la settimana scorsa dalla fonte.
+            self._backfill_tried.add(prev_monday)
+            prev = await self._fetch_week(prev_monday, links)
+        weeks["previous"] = prev or empty_week(prev_monday)
         return weeks
 
     def _remember(self, weeks: dict[str, dict[str, Any]]) -> bool:
@@ -207,7 +241,7 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self.hass,
                     DOMAIN,
                     ISSUE_SOURCES,
-                    is_fixable=False,
+                    is_fixable=True,
                     severity=ir.IssueSeverity.WARNING,
                     translation_key=ISSUE_SOURCES,
                 )
@@ -251,3 +285,16 @@ class UpasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             for item in week.get("days", []):
                 found[item["date"]] = {**item, "url": week["url"], "source": week["source"]}
         return [found[k] for k in sorted(found)]
+
+    # ------------------------------------------------------------ pause
+    def pause_info(self, today: date) -> dict[str, Any]:
+        """Prossima pausa nota e puntate consecutive da oggi (nei dati disponibili)."""
+        episodes = [e for e in self.all_episodes() if e["date"] >= today.isoformat()]
+        streak = 0
+        next_pause: dict[str, Any] | None = None
+        for ep in episodes:
+            if ep.get("no_episode"):
+                next_pause = ep
+                break
+            streak += 1
+        return {"streak": streak, "next_pause": next_pause}

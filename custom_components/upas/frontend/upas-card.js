@@ -17,7 +17,15 @@
  *   language: auto                    # facoltativo: auto (lingua di Home Assistant), it, en
  *   entity: sensor.xxx                # facoltativo: trovato da solo
  */
-const UPAS_VERSION = "1.0.0";
+const UPAS_VERSION = "1.1.0";
+
+// Cerca una scheda personaggio per nome (o alias) citato nelle trame.
+function findChar(list, name) {
+  const n = String(name || "").toLowerCase();
+  if (!n || !Array.isArray(list)) return null;
+  return list.find((c) => (c.aliases || []).some((a) => String(a).toLowerCase() === n)) ||
+    list.find((c) => String(c.name || "").toLowerCase().split(" ").includes(n)) || null;
+}
 
 const I18N = {
   it: {
@@ -27,7 +35,7 @@ const I18N = {
     full_text: "Testo integrale su", go_on: "Continua su", the_source: "la fonte", paused: "Non in onda", reveal: "Tocca per leggere (spoiler)",
     web: "Dal web", latest: "ultime notizie", no_news: "Nessuna notizia disponibile al momento.", edition: "Edizione online", updated: "Aggiornata alle",
     trivia: "Lo sapevi che?", source: "Fonte", another_pill: "un'altra pillola \u2192", another_char: "un altro personaggio \u2192", in_plot: "Nella puntata di oggi",
-    char_day: "Personaggio del giorno", played_by: "interpretato da", weekly_chars: "Personaggi della settimana", day: "giorno", days: "giorni",
+    char_day: "Personaggio del giorno", char_card: "Scheda personaggio", played_by: "interpretato da", weekly_chars: "Personaggi della settimana", day: "giorno", days: "giorni",
     next_air: "Prossima puntata", where: "Dove guardarla", tomorrow: "Domani", tonight2: "Stasera",
     air_txt: "Rai 3, in prima serata (circa {t}), salvo variazioni di palinsesto.",
     where_txt: "In diretta su Rai 3 dal luned\u00ec al venerd\u00ec; puntate e repliche su", pub_note: "Le nuove trame vengono pubblicate di norma il sabato.",
@@ -44,7 +52,7 @@ const I18N = {
     full_text: "Full text on", go_on: "Continue on", the_source: "the source", paused: "Not on air", reveal: "Tap to read (spoiler)",
     web: "From the web", latest: "latest news", no_news: "No news available right now.", edition: "Online edition", updated: "Updated at",
     trivia: "Did you know?", source: "Source", another_pill: "another one \u2192", another_char: "another character \u2192", in_plot: "In today's episode",
-    char_day: "Character of the day", played_by: "played by", weekly_chars: "Characters of the week", day: "day", days: "days",
+    char_day: "Character of the day", char_card: "Character profile", played_by: "played by", weekly_chars: "Characters of the week", day: "day", days: "days",
     next_air: "Next episode", where: "Where to watch", tomorrow: "Tomorrow", tonight2: "Tonight",
     air_txt: "Rai 3, prime time (about {t}), subject to schedule changes.",
     where_txt: "Live on Rai 3 Monday to Friday; episodes and replays on", pub_note: "New plots are usually published on Saturdays.",
@@ -56,6 +64,10 @@ const I18N = {
   },
 };
 let L = I18N.it; // lingua corrente (impostata da setConfig/hass)
+
+const MONTHS_IT = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+// Etichette di settimana dal backend ("19-23 ottobre"): con la UI in inglese traduce il mese.
+const trLabel = (t) => (L.locale === "en-GB" ? String(t || "").replace(/[a-z\u00e0-\u00f9]+/gi, (w) => { const i = MONTHS_IT.indexOf(w.toLowerCase()); return i < 0 ? w : L.mo[i]; }) : t);
 
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -190,6 +202,8 @@ ha-card { overflow: hidden; }
 .item p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.45; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0 !important; }
 .chips span { border: 1px solid var(--rule); padding: 1px 8px; font-size: 12.5px; border-radius: 2px; }
+.chips span.go { cursor: pointer; border-color: var(--ink); }
+.chips span.go:hover { background: var(--rule); }
 .chips i { color: var(--muted); font-style: normal; font-size: 11px; margin-left: 4px; }
 .trivia { border: 1px solid var(--rule); border-top: 3px double var(--rule); background: var(--soft); padding: 10px 14px 8px; margin-bottom: 14px; display: flex; gap: 14px; align-items: flex-start; }
 .trivia .yr { font-size: 30px; font-weight: 700; color: var(--accent); line-height: 1; min-width: 64px; text-align: center; padding-top: 4px; }
@@ -318,7 +332,7 @@ class UpasCard extends HTMLElement {
       body = week.days.map((d) => this._dayItem(d, todayIso)).join("") +
         `<div class="more">${esc(L.full_text)} <a href="${safeUrl(week.url)}" target="_blank" rel="noopener noreferrer">${esc(week.source)}</a> \u2192</div>`;
     }
-    return `<section class="col"><h3 class="sect">${esc(title)}<small>${esc(week.label)}</small></h3>${body}</section>`;
+    return `<section class="col"><h3 class="sect">${esc(title)}<small>${esc(trLabel(week.label))}</small></h3>${body}</section>`;
   }
 
   _highlights(attrs) {
@@ -327,7 +341,7 @@ class UpasCard extends HTMLElement {
     const names = this._config.spoiler_free ? [] : featuredNames(days);
     const t = String(attrs.air_time || "20:50").slice(0, 5);
     const chips = names.length
-      ? `<div class="item"><div class="d"><b>${esc(L.weekly_chars)}</b></div><p class="chips">${names.map(([n, c]) => `<span>${esc(n)}<i>${c} ${c === 1 ? L.day : L.days}</i></span>`).join("")}</p></div>`
+      ? `<div class="item"><div class="d"><b>${esc(L.weekly_chars)}</b></div><p class="chips">${names.map(([n, c]) => `<span${findChar(attrs.characters, n) && this._config.show_trivia !== false ? ` class="go" data-char="${esc(n)}" role="button" tabindex="0"` : ""}>${esc(n)}<i>${c} ${c === 1 ? L.day : L.days}</i></span>`).join("")}</p></div>`
       : "";
     return `<section class="col"><h3 class="sect">${esc(L.highlights)}<small>${esc(L.waiting)}</small></h3>
       <div class="item"><div class="d"><b>${esc(L.next_air)}</b></div><p>${esc(nx.label.toLowerCase() === nx.wd ? "" : nx.label + ", ")}${esc(nx.wd)} ${nx.num} ${esc(nx.mon)} \u00b7 ${esc(L.air_txt.replace("{t}", t))}</p></div>
@@ -369,7 +383,7 @@ class UpasCard extends HTMLElement {
       const l = dayLabel(d.date);
       return `<div class="item"><div class="d"><b>${esc(l.wd)}</b> ${l.num} ${esc(l.mon)}</div><p>${esc(d.no_episode ? `${L.paused}: ${d.pause_note || ""}` : d.excerpt)}</p></div>`;
     }).join("");
-    return `<details class="recap"><summary>${esc(L.recap)} \u00b7 ${esc(w.label)}</summary>${rows}</details>`;
+    return `<details class="recap"><summary>${esc(L.recap)} \u00b7 ${esc(trLabel(w.label))}</summary>${rows}</details>`;
   }
 
   _trivia(attrs) {
@@ -384,13 +398,15 @@ class UpasCard extends HTMLElement {
 
   _characterBox(attrs, todayIso) {
     const todayText = [...(attrs.this_week?.days || []), ...(attrs.next_week?.days || [])].filter((d) => d.date === todayIso).map((d) => d.excerpt).join(" ");
-    const p = pickCharacter(attrs.characters, todayText, new Date(), this._cskip || 0);
+    let p = pickCharacter(attrs.characters, todayText, new Date(), this._cskip || 0);
+    const chosen = this._cname ? findChar(attrs.characters, this._cname) : null;
+    if (chosen) p = { item: chosen, inPlot: false, picked: true };
     if (!p) return "";
     const c = p.item;
     const dir = safePhotoDir(this._config.photos_path);
     const img = dir ? `<img src="${esc(dir)}/${esc(c.photo || c.id)}.jpg" alt="" loading="lazy">` : "";
     const inPlot = p.inPlot && !this._config.spoiler_free;
-    return `<section class="tbox"><div class="kicker">${inPlot ? esc(L.in_plot) : esc(L.char_day)}</div>
+    return `<section class="tbox"><div class="kicker">${p.picked ? esc(L.char_card) : inPlot ? esc(L.in_plot) : esc(L.char_day)}</div>
       <div class="char"><div class="av">${esc(initials(c.name))}${img}</div><div>
       <div class="nm">${esc(c.name)}</div><div class="by">${esc(L.played_by)} ${esc(c.actor)}</div>
       <p class="tx">${esc(c.caption)}</p>${c.anecdote ? `<p class="an">\u00ab${esc(c.anecdote)}\u00bb</p>` : ""}</div></div>
@@ -444,9 +460,19 @@ class UpasCard extends HTMLElement {
     this.shadowRoot.querySelectorAll(".btn").forEach((b) =>
       b.addEventListener("click", () => {
         this._cskip = (this._cskip || 0) + 1;
+        this._cname = null;
         this._render();
       })
     );
+    this.shadowRoot.querySelectorAll("[data-char]").forEach((el) => {
+      const open = () => {
+        this._cname = el.dataset.char;
+        this._render();
+        this.shadowRoot.querySelector(".tbox")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      };
+      el.addEventListener("click", open);
+      el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+    });
     this.shadowRoot.querySelectorAll("[data-spoil]").forEach((el) =>
       el.addEventListener("click", () => {
         this._revealed.add(el.dataset.spoil);

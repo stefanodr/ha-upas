@@ -187,6 +187,8 @@ def parse_week_article(html: str, monday: date, url: str, source: str) -> dict[s
                 }
             )
     if not days:
+        days = _flex_days(soup, monday)
+    if not days:
         return None
     title = soup.find("h1")
     published = soup.find("meta", attrs={"property": "article:published_time"})
@@ -202,6 +204,77 @@ def parse_week_article(html: str, monday: date, url: str, source: str) -> dict[s
         "source": source,
         "days": sorted(days, key=lambda d: d["date"]),
     }
+
+
+_FLEX_DAY = re.compile(
+    r"^\s*(lunedi|martedi|mercoledi|giovedi|venerdi)\s+(\d{1,2})\s+([a-z]+)(?:\s+\d{4})?\s*[:\-\u2013\u2014.]?\s*",
+    re.I,
+)
+
+
+def _flex_days(soup: BeautifulSoup, monday: date) -> list[dict[str, Any]]:
+    """Struttura alternativa (es. DiLei): titoletto "Luned\u00ec 3 agosto 2026" in grassetto o
+    in un blocco a parte, oppure all'inizio del paragrafo; poi uno o due paragrafi."""
+    blocks = [
+        (b.name, clean(b.get_text(" ", strip=True)))
+        for b in soup.find_all(["h1", "h2", "h3", "h4", "h5", "p"])
+    ]
+    friday = monday + timedelta(days=EPISODE_DAYS - 1)
+    found: dict[date, list[str]] = {}
+    current: date | None = None
+    for name, text in blocks:
+        match = _FLEX_DAY.match(_fold(text)) if text else None
+        if match:
+            day = _heading_date(match, monday)
+            if day and monday <= day <= friday:
+                current = day
+                rest = clean(text[match.end():]) if len(text) >= match.end() else ""
+                found.setdefault(day, [])
+                if len(rest) > 25:
+                    found[day].append(rest)
+                continue
+        if current is None:
+            continue
+        if name != "p":  # un titolo di sezione chiude il giorno
+            current = None
+            continue
+        if text and len(found[current]) < 2:
+            found[current].append(text)
+    days = []
+    for day in sorted(found):
+        text = " ".join(found[day])
+        if not text:
+            continue
+        paused = detect_pause(text)
+        days.append(
+            {
+                "date": day.isoformat(),
+                "weekday": WEEKDAYS[day.weekday()],
+                "excerpt": make_excerpt(text),
+                "no_episode": paused,
+                "pause_note": make_excerpt(text, 140) if paused else "",
+            }
+        )
+    return days
+
+
+def extract_alt_links(xml_text: str, mark: str) -> dict[date, str]:
+    """Dal feed di scoperta: {lunedi: url} degli articoli di trame della seconda fonte."""
+    found: dict[date, str] = {}
+    for item in parse_news_rss(xml_text, 100):
+        url = item["url"]
+        if mark not in url:
+            continue
+        slug = url.split(mark, 1)[1].split("/", 1)[0]
+        span = parse_week_span("dal-" + slug.replace("-2026", "-2026"))
+        if not span:
+            m = re.match(r"(\d{1,2})-([a-z]+)-(\d{1,2})-([a-z]+)-(\d{4})", slug)
+            if m:
+                d1, m1, d2, m2, y = m.groups()
+                span = parse_week_span(f"dal {d1} {m1} al {d2} {m2} {y}")
+        if span:
+            found.setdefault(span[0], url.split("?")[0])
+    return found
 
 
 _PAUSE = re.compile(

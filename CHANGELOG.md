@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.0
+### English
+- **Second plot source (fallback):** DiLei weekly articles are used when TV Sorrisi e Canzoni has no article for a week (articles discovered via Bing News; recent weeks only). The week reports its real source. This path is fail-soft and untested against the live site, enable debug logging for `custom_components.upas` to see it at work.
+- On first install the **previous week is fetched once**, so the recap is not empty until the archive fills up.
+- New sensors **Next break** and **Episodes in a row**, new **Refresh now** button; the Repairs notice now has a **Retry now** action.
+- **Card**: characters of the week are clickable (opens the profile); week labels are translated when the UI is in English.
+- **Blueprint** `notify_tonight` (reminder before the episode, spoiler-free option).
+- Weekly **source check** workflow and `scripts/check_sources.py`; 7 new trivia pills; more tests.
+- No entity is renamed.
+
+### Italiano
+- **Seconda fonte per le trame (ripiego):** gli articoli settimanali di DiLei sono usati quando TV Sorrisi e Canzoni non ha l'articolo di una settimana (articoli scoperti tramite Bing News; solo settimane recenti). La settimana indica la fonte reale. Il percorso fallisce senza errori ed è stato testato solo con fixture, non sul sito reale: attiva il log di debug di `custom_components.upas` per vederlo in azione.
+- Alla prima installazione la **settimana scorsa viene recuperata una volta**, così il riepilogo non resta vuoto finché l'archivio non si riempie.
+- Nuovi sensori **Prossima pausa** e **Puntate di fila**, nuovo pulsante **Aggiorna ora**; l'avviso in Riparazioni ha ora l'azione **Riprova ora**.
+- **Card**: personaggi della settimana cliccabili (apre la scheda); etichette delle settimane tradotte con l'interfaccia in inglese.
+- **Blueprint** `notify_tonight` (promemoria prima della puntata, opzione senza spoiler).
+- Workflow di **controllo settimanale delle fonti** e `scripts/check_sources.py`; 7 nuove pillole; più test.
+- Nessuna entità viene rinominata.
+
 ## 1.0.0
 ### English
 - **Yesterday on air** and a collapsible **last-week recap**, backed by a persistent archive (survives restarts, kept for 12 weeks) that is also used as a fallback when the source is unreachable.

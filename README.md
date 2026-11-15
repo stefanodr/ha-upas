@@ -17,6 +17,14 @@ Day-by-day plot previews for the **current and next week** of the Italian soap *
 
 > Independent community project, not affiliated with Rai or the producers of "Un posto al sole". The plots and trivia are in Italian.
 
+## What's new in 1.1
+- **Second plot source (fallback):** if TV Sorrisi e Canzoni has no article for a week, the integration tries DiLei (articles discovered through the news feed). The week shows its real source.
+- **Last-week recap works from day one:** on first install the previous week is fetched once.
+- **New entities:** *Next break* and *Episodes in a row* sensors, and a **Refresh now** button. The Repairs notice now has a **Retry now** action.
+- **Card:** characters of the week are **clickable** (opens the character profile) and week labels are translated when the card is in English.
+- **Blueprint** for a reminder before the episode, with a **spoiler-free** option.
+- **Weekly source check** (GitHub Actions) to catch a source layout change early; 7 new trivia pills.
+
 ## What's new in 1.0
 - **Yesterday on air** and a collapsible **last-week recap**, backed by an archive that survives restarts.
 - **Days without an episode** (breaks, sports events) are detected and shown as such.
@@ -106,6 +114,9 @@ Entity IDs depend on Home Assistant's language (in English e.g. `sensor.un_posto
 | Character of the day | name and actor | `role`, `caption`, `source`, `in_todays_plot` |
 | News | number of items | `articles[]` (title, source, url, date) |
 | Did you know | text of today's pill | `year`, `title`, `text`, `source`, `url` |
+| Next break | date of the next episode-less day, or "Nessuna pausa nota" | `days_until`, `note`, `url` |
+| Episodes in a row | consecutive known episodes from today | |
+| Refresh now (button) | forces an update | |
 | Episodes (calendar) | next episode | events at air time |
 | Broadcast (event) | last event | `week_published`, `episode_starting` |
 
@@ -121,6 +132,11 @@ data:
 response_variable: episode
 ```
 
+### Blueprint: reminder before the episode
+Reminder shortly before the episode starts, with or without the plot (spoiler-free option):
+
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fstefanodr%2Fha-upas%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fupas%2Fnotify_tonight.yaml)
+
 ## Dashboard example
 For a full-screen page create a **Panel (1 card)** view and add the card; see [`examples/dashboard.yaml`](examples/dashboard.yaml).
 
@@ -130,7 +146,7 @@ Update interval (60–1440 min, default 360), news on/off, max number of news, *
 **Diagnostics and repairs:** in *Devices & services → Un Posto al Sole → ⋮ → Download diagnostics* you find the state of the sources. If no source answers for several updates in a row a notice appears in *Repairs* (it closes by itself when data is back). Meanwhile the last valid data is shown.
 
 ## Sources and limits
-- Plots: <https://www.sorrisi.com/tag/un-posto-al-sole/> ("le trame dal X al Y" articles).
+- Plots: <https://www.sorrisi.com/tag/un-posto-al-sole/> ("le trame dal X al Y" articles). Fallback: DiLei weekly articles, discovered through Bing News (limited to recent weeks).
 - News: Google News and Bing News (RSS).
 - Parsing depends on the pages' structure: if a source changes, the card shows "in arrivo" or no news, and the debug log has details. Parsers are in `parsers.py` and covered by tests.
 - Excerpts are limited to ~280 characters per day. Respect the sources' terms of use and don't lower the update interval without reason.
@@ -149,6 +165,9 @@ logger:
   logs:
     custom_components.upas: debug
 ```
+
+## Source check
+A GitHub Action runs every Monday (`scripts/check_sources.py`) and fails if the parsers can no longer read the real sources, so layout changes are noticed early. You can run it locally with `python scripts/check_sources.py`.
 
 ## Development
 ```bash

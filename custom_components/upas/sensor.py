@@ -43,6 +43,8 @@ DESCRIPTIONS = (
     SensorEntityDescription(key="previous_week", translation_key="previous_week", icon="mdi:calendar-arrow-left"),
     SensorEntityDescription(key="trivia", translation_key="trivia", icon="mdi:lightbulb-on-outline"),
     SensorEntityDescription(key="character", translation_key="character", icon="mdi:account-star"),
+    SensorEntityDescription(key="next_break", translation_key="next_break", icon="mdi:calendar-remove"),
+    SensorEntityDescription(key="streak", translation_key="streak", icon="mdi:counter"),
     SensorEntityDescription(key="news", translation_key="news", icon="mdi:newspaper-variant-multiple"),
 )
 
@@ -79,7 +81,7 @@ class UpasSensor(CoordinatorEntity[UpasCoordinator], SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        if self.entity_description.key in ("today", "yesterday", "trivia", "character"):
+        if self.entity_description.key in ("today", "yesterday", "trivia", "character", "next_break", "streak"):
             # La puntata "di oggi" cambia a mezzanotte, non al prossimo refresh.
             self.async_on_remove(
                 async_track_time_change(self.hass, self._midnight, hour=0, minute=1, second=0)
@@ -119,6 +121,11 @@ class UpasSensor(CoordinatorEntity[UpasCoordinator], SensorEntity):
         if key == "character":
             who = self._character()
             return f"{who[0]['name']} ({who[0]['actor']})"[:255] if who else None
+        if key == "streak":
+            return self.coordinator.pause_info(dt_util.now().date())["streak"]
+        if key == "next_break":
+            nb = self.coordinator.pause_info(dt_util.now().date())["next_pause"]
+            return nb["date"] if nb else "Nessuna pausa nota"
         if key in ("today", "yesterday"):
             day = self._today() if key == "today" else self._yesterday()
             if not day:
@@ -159,6 +166,14 @@ class UpasSensor(CoordinatorEntity[UpasCoordinator], SensorEntity):
             return {**who[0], "in_todays_plot": who[1]} if who else {}
         if key == "news":
             return {"articles": data.get("news", [])}
+        if key == "next_break":
+            nb = self.coordinator.pause_info(dt_util.now().date())["next_pause"]
+            if not nb:
+                return {}
+            days = (date.fromisoformat(nb["date"]) - dt_util.now().date()).days
+            return {"days_until": days, "note": nb.get("pause_note", ""), "url": nb["url"]}
+        if key == "streak":
+            return {}
         if key in ("today", "yesterday"):
             return (self._today() if key == "today" else self._yesterday()) or {}
         week = self._weeks().get(key.removesuffix("_week"))
