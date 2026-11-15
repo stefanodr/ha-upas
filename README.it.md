@@ -13,9 +13,16 @@
 
 Anticipazioni **giorno per giorno della settimana corrente e della successiva**, più le **ultime notizie dal web**, presentate in una card in **stile quotidiano**.
 
-![Anteprima](docs/preview-1.0.png)
+![Anteprima](docs/preview-1.2.png)
 
 > Progetto indipendente della community, non affiliato a Rai né ai produttori di «Un posto al sole».
+
+## Novità della 1.2
+- **Fascia «Stasera in onda»**: orario, titolo e stato in tempo reale («tra 2 h 10 min», «In onda ora», «Andata in onda»), oppure «Oggi non in onda» nei giorni di pausa.
+- **Striscia dei giorni**: tocca un giorno della settimana per leggerne la trama (rispetta la modalità senza spoiler).
+- **Tema serale** (`theme: evening`), testata più grande con sottotitolo, spaziature rifinite. Nuove opzioni `show_tonight` e `show_strip` (anche nell'editor visivo).
+
+![Tema serale](docs/preview-evening.png)
 
 ## Novità della 1.1
 - **Seconda fonte per le trame (ripiego):** se TV Sorrisi e Canzoni non ha l'articolo di una settimana, l'integrazione prova DiLei (articoli scoperti tramite il feed delle notizie). La settimana mostra la fonte reale.

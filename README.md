@@ -13,9 +13,16 @@
 
 Day-by-day plot previews for the **current and next week** of the Italian soap *Un posto al sole*, plus the **latest news from the web**, shown in a **newspaper-style** Lovelace card.
 
-![Preview](docs/preview-1.0.png)
+![Preview](docs/preview-1.2.png)
 
 > Independent community project, not affiliated with Rai or the producers of "Un posto al sole". The plots and trivia are in Italian.
+
+## What's new in 1.2
+- **Tonight band**: air time, headline and a live status ("in 2 h 10 min", "On air now", "Aired"), or "Not on air today" on break days.
+- **Day strip**: tap a weekday to read that day's plot (spoiler-free mode respected).
+- **Evening theme** (`theme: evening`), bigger masthead with tagline, polished spacing. New options `show_tonight` and `show_strip` (also in the visual editor).
+
+![Evening theme](docs/preview-evening.png)
 
 ## What's new in 1.1
 - **Second plot source (fallback):** if TV Sorrisi e Canzoni has no article for a week, the integration tries DiLei (articles discovered through the news feed). The week shows its real source.
@@ -68,7 +75,9 @@ type: custom:upas-card
 title: La Gazzetta di Posillipo   # optional (default: title from the integration options)
 max_news: 6                       # optional
 show_news: true                   # optional
-theme: light                      # optional: light (default), dark, auto (follows Home Assistant)
+theme: light                      # optional: light (default), dark, evening, auto (follows Home Assistant)
+show_tonight: true                # optional: "Tonight on air" band with air time and status
+show_strip: true                  # optional: day strip (tap a day to read it)
 layout: full                      # optional: full (default) or compact
 spoiler_free: false               # optional: blurs plots from today on until you tap them
 show_yesterday: true              # optional: "Yesterday on air"

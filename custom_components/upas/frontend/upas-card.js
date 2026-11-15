@@ -10,6 +10,8 @@
  *   show_trivia: true                 # facoltativo: "Lo sapevi che?" e "Personaggio del giorno"
  *   photos_path: /local/upas          # facoltativo: cartella locale con le tue foto <id>.jpg (vedi README)
  *   theme: light                      # facoltativo: light (default), dark, auto (segue Home Assistant)
+ *   show_tonight: true                # facoltativo: fascia "Stasera in onda" con orario e conto alla rovescia
+ *   show_strip: true                  # facoltativo: striscia dei giorni della settimana (tocca un giorno per leggerlo)
  *   layout: full                      # facoltativo: full (default) o compact (titolo, puntata e poche notizie)
  *   spoiler_free: false               # facoltativo: sfoca le trame da oggi in poi finche' non le tocchi
  *   show_yesterday: true              # facoltativo: "Ieri in onda"
@@ -17,7 +19,7 @@
  *   language: auto                    # facoltativo: auto (lingua di Home Assistant), it, en
  *   entity: sensor.xxx                # facoltativo: trovato da solo
  */
-const UPAS_VERSION = "1.1.0";
+const UPAS_VERSION = "1.2.0";
 
 // Cerca una scheda personaggio per nome (o alias) citato nelle trame.
 function findChar(list, name) {
@@ -35,7 +37,7 @@ const I18N = {
     full_text: "Testo integrale su", go_on: "Continua su", the_source: "la fonte", paused: "Non in onda", reveal: "Tocca per leggere (spoiler)",
     web: "Dal web", latest: "ultime notizie", no_news: "Nessuna notizia disponibile al momento.", edition: "Edizione online", updated: "Aggiornata alle",
     trivia: "Lo sapevi che?", source: "Fonte", another_pill: "un'altra pillola \u2192", another_char: "un altro personaggio \u2192", in_plot: "Nella puntata di oggi",
-    char_day: "Personaggio del giorno", char_card: "Scheda personaggio", played_by: "interpretato da", weekly_chars: "Personaggi della settimana", day: "giorno", days: "giorni",
+    char_day: "Personaggio del giorno", in_t: "tra {d}", on_now: "In onda ora", aired: "Andata in onda", paused_today: "Oggi non in onda", since: "dal 1996", char_card: "Scheda personaggio", played_by: "interpretato da", weekly_chars: "Personaggi della settimana", day: "giorno", days: "giorni",
     next_air: "Prossima puntata", where: "Dove guardarla", tomorrow: "Domani", tonight2: "Stasera",
     air_txt: "Rai 3, in prima serata (circa {t}), salvo variazioni di palinsesto.",
     where_txt: "In diretta su Rai 3 dal luned\u00ec al venerd\u00ec; puntate e repliche su", pub_note: "Le nuove trame vengono pubblicate di norma il sabato.",
@@ -52,7 +54,7 @@ const I18N = {
     full_text: "Full text on", go_on: "Continue on", the_source: "the source", paused: "Not on air", reveal: "Tap to read (spoiler)",
     web: "From the web", latest: "latest news", no_news: "No news available right now.", edition: "Online edition", updated: "Updated at",
     trivia: "Did you know?", source: "Source", another_pill: "another one \u2192", another_char: "another character \u2192", in_plot: "In today's episode",
-    char_day: "Character of the day", char_card: "Character profile", played_by: "played by", weekly_chars: "Characters of the week", day: "day", days: "days",
+    char_day: "Character of the day", in_t: "in {d}", on_now: "On air now", aired: "Aired", paused_today: "Not on air today", since: "since 1996", char_card: "Character profile", played_by: "played by", weekly_chars: "Characters of the week", day: "day", days: "days",
     next_air: "Next episode", where: "Where to watch", tomorrow: "Tomorrow", tonight2: "Tonight",
     air_txt: "Rai 3, prime time (about {t}), subject to schedule changes.",
     where_txt: "Live on Rai 3 Monday to Friday; episodes and replays on", pub_note: "New plots are usually published on Saturdays.",
@@ -236,6 +238,38 @@ details.recap { border-top: 1px solid var(--rule); padding: 8px 0; margin-bottom
 details.recap summary { cursor: pointer; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
 .yday { border-left: 3px solid var(--muted); padding: 4px 0 4px 10px; margin: 0 0 14px; }
 .yday p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.45; }
+.paper.evening {
+  --paper: #14161f; --ink: #ebe6d6; --muted: #9a9cae; --rule: #3a3f55; --accent: #e6b450; --soft: #1d2030;
+}
+.mast .tag { font-size: 10.5px; letter-spacing: .32em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.mast .title { font-size: clamp(26px, 6.4vw, 42px); }
+.tonight { display: flex; align-items: stretch; background: var(--accent); color: #fff; margin: 0 0 16px; border-radius: 2px; overflow: hidden; }
+.paper.evening .tonight, .paper.dark .tonight { color: #1b1b1b; }
+.tonight .tt-time { flex: 0 0 auto; padding: 10px 16px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+  border-right: 1px solid rgba(255,255,255,.35); font-variant-numeric: tabular-nums; }
+.paper.evening .tonight .tt-time, .paper.dark .tonight .tt-time { border-right-color: rgba(0,0,0,.25); }
+.tonight .tt-time b { font-size: clamp(26px, 6vw, 36px); line-height: 1; letter-spacing: .02em; }
+.tonight .tt-time span { font-size: 10.5px; letter-spacing: .24em; text-transform: uppercase; margin-top: 3px; opacity: .85; }
+.tonight .tt-body { padding: 10px 14px; min-width: 0; flex: 1; }
+.tonight .kicker { color: inherit; opacity: .85; margin-bottom: 2px; }
+.tonight h2 { margin: 0 0 6px; font-size: clamp(18px, 4.2vw, 24px); line-height: 1.15; }
+.tonight .chip { display: inline-block; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700;
+  border: 1px solid currentColor; padding: 1px 8px; border-radius: 10px; }
+.tonight.live .chip::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: 6px; animation: pulse 1.4s infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+.strip { display: flex; gap: 6px; margin: 0 0 12px; }
+.dchip { flex: 1; font: inherit; color: var(--ink); background: none; border: 1px solid var(--rule); border-radius: 2px; padding: 5px 0 4px; cursor: pointer; text-align: center; line-height: 1.1; }
+.dchip span { display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.dchip b { font-size: 17px; }
+.dchip.today { background: var(--accent); border-color: var(--accent); color: #fff; }
+.dchip.today span { color: inherit; opacity: .85; }
+.paper.evening .dchip.today, .paper.dark .dchip.today { color: #1b1b1b; }
+.dchip.past { opacity: .5; }
+.dchip.pause b { text-decoration: line-through; }
+.dchip.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+.dpanel { background: var(--soft); border-left: 3px solid var(--accent); padding: 8px 12px; margin: -4px 0 14px; }
+.dpanel p { margin: 2px 0 0; font-size: 14px; line-height: 1.5; }
+.lead.nohead { padding-top: 0; }
 .paper.compact .mast .title { font-size: clamp(18px, 4.5vw, 24px); }
 .paper.compact .bar { margin-bottom: 10px; }
 .empty { font-style: italic; color: var(--muted); font-size: 13.5px; line-height: 1.45; padding: 6px 0; }
@@ -254,7 +288,7 @@ class UpasCard extends HTMLElement {
   setConfig(config) {
     this._config = {
       show_news: true, max_news: 6, theme: "light", show_highlights: true, show_trivia: true,
-      show_yesterday: true, show_recap: true, layout: "full", spoiler_free: false, language: "auto", ...config,
+      show_yesterday: true, show_recap: true, show_tonight: true, show_strip: true, layout: "full", spoiler_free: false, language: "auto", ...config,
     };
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this._revealed = this._revealed || new Set();
@@ -264,7 +298,7 @@ class UpasCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     const ent = this._findEntity();
-    const sig = ent ? `${ent.state}|${ent.last_updated}|${isoLocal(new Date())}|${this._isDark()}|${this._lang()}` : "none";
+    const sig = ent ? `${ent.state}|${ent.last_updated}|${isoLocal(new Date())}|${Math.floor(Date.now() / 60000)}|${this._themeClass()}|${this._lang()}` : "none";
     if (sig !== this._sig) {
       this._sig = sig;
       this._render();
@@ -277,9 +311,15 @@ class UpasCard extends HTMLElement {
     return String(this._hass?.locale?.language || this._hass?.language || "it").toLowerCase().startsWith("en") ? "en" : "it";
   }
 
+  _themeClass() {
+    const t = String(this._config?.theme || "light").toLowerCase();
+    if (t === "evening") return "evening";
+    return this._isDark() ? "dark" : "";
+  }
+
   _isDark() {
     const t = String(this._config?.theme || "light").toLowerCase();
-    if (t === "dark") return true;
+    if (t === "dark" || t === "evening") return true;
     if (t === "auto") return !!this._hass?.themes?.darkMode;
     return false;
   }
@@ -350,6 +390,49 @@ class UpasCard extends HTMLElement {
       <div class="more">${esc(L.pub_note)}</div></section>`;
   }
 
+  _fmtDur(min) {
+    const h = Math.floor(min / 60), m = min % 60;
+    return h > 0 ? `${h} h ${m} min` : `${m} min`;
+  }
+
+  _hasTonight(attrs, todayIso) {
+    return this._config.show_tonight !== false && attrs.today && attrs.today.date === todayIso;
+  }
+
+  _tonight(attrs, todayIso) {
+    if (!this._hasTonight(attrs, todayIso)) return "";
+    const ep = attrs.today;
+    const t = String(attrs.air_time || "20:50").slice(0, 5);
+    const [h, m] = t.split(":").map(Number);
+    const now = new Date();
+    const diff = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m) - now) / 60000);
+    const live = diff <= 0 && diff > -25;
+    const status = ep.no_episode ? L.paused_today : diff > 0 ? L.in_t.replace("{d}", this._fmtDur(diff)) : live ? L.on_now : L.aired;
+    const head = ep.no_episode ? (ep.pause_note || ep.excerpt) : splitHeadline(ep.excerpt).head;
+    const spoil = this._config.spoiler_free && !ep.no_episode && !this._revealed.has(ep.date);
+    const attr = spoil ? ` class="spoil" data-spoil="${esc(ep.date)}" title="${esc(L.reveal)}"` : "";
+    return `<section class="tonight${live ? " live" : ""}"><div class="tt-time"><b>${esc(t)}</b><span>Rai 3</span></div>
+      <div class="tt-body"><div class="kicker">${esc(L.tonight)}</div><h2${attr}>${esc(head)}</h2><span class="chip">${esc(status)}</span></div></section>`;
+  }
+
+  _strip(attrs, todayIso) {
+    const w = attrs.this_week;
+    if (this._config.show_strip === false || !w?.available) return "";
+    const chips = w.days.map((d) => {
+      const l = dayLabel(d.date);
+      const cls = [d.date === todayIso ? "today" : d.date < todayIso ? "past" : "", d.no_episode ? "pause" : "", this._sel === d.date ? "sel" : ""].join(" ");
+      return `<button type="button" class="dchip ${cls}" data-day="${esc(d.date)}"><span>${esc(l.wd.slice(0, 3))}</span><b>${l.num}</b></button>`;
+    }).join("");
+    const sel = this._sel && w.days.find((d) => d.date === this._sel);
+    let panel = "";
+    if (sel) {
+      const l = dayLabel(sel.date);
+      const body = sel.no_episode ? `<p>${esc(L.paused)}: ${esc(sel.pause_note || sel.excerpt)}</p>` : this._plot(sel, todayIso);
+      panel = `<div class="dpanel"><div class="kicker">${esc(l.wd)} ${l.num} ${esc(l.mon)}</div>${body}</div>`;
+    }
+    return `<div class="strip">${chips}</div>${panel}`;
+  }
+
   _lead(attrs, todayIso) {
     const all = [...(attrs.this_week?.days || []), ...(attrs.next_week?.days || [])].filter((d) => !d.no_episode);
     const src = (d) => (attrs.this_week?.days || []).includes(d) ? attrs.this_week : attrs.next_week;
@@ -364,6 +447,11 @@ class UpasCard extends HTMLElement {
     const spoil = this._config.spoiler_free && !this._revealed.has(pick.date);
     const attr = spoil ? ` class="spoil" data-spoil="${esc(pick.date)}" title="${esc(L.reveal)}"` : "";
     const compact = this._config.layout === "compact";
+    if (today && this._hasTonight(attrs, todayIso)) {
+      // il titolo e' gia' nella fascia "Stasera in onda": qui resta il testo
+      return `<section class="lead nohead">${body && !compact ? `<p${attr}>${esc(body)}</p>` : ""}
+        <div class="more"><a href="${safeUrl(week?.url)}" target="_blank" rel="noopener noreferrer">${esc(L.go_on)} ${esc(week?.source || L.the_source)}</a> \u2192</div></section>`;
+    }
     return `<section class="lead"><div class="kicker">${esc(kicker)}</div><h2${attr}>${esc(head)}</h2>${body && !compact ? `<p${attr}>${esc(body)}</p>` : ""}
       <div class="more"><a href="${safeUrl(week?.url)}" target="_blank" rel="noopener noreferrer">${esc(L.go_on)} ${esc(week?.source || L.the_source)}</a> \u2192</div></section>`;
   }
@@ -444,9 +532,11 @@ class UpasCard extends HTMLElement {
       const nextCol = a.next_week?.available || this._config.show_highlights === false
         ? this._weekColumn(L.next_week, a.next_week, todayIso) : this._highlights(a);
       inner = `
-        <header class="mast"><div class="title"><span class="sun">\u2600</span> ${esc(title)}</div></header>
+        <header class="mast"><div class="title"><span class="sun">\u2600</span> ${esc(title)}</div><div class="tag">Napoli \u00b7 Rai 3 \u00b7 ${esc(L.since)}</div></header>
         <div class="bar"><span>${esc(L.wd[now.getDay()])} ${now.getDate()} ${esc(L.mo[now.getMonth()])} ${now.getFullYear()}</span>${compact ? "" : `<span>${esc(L.edition)}</span>`}<span>${esc(L.updated)} ${esc(updTxt)}</span></div>
+        ${this._tonight(a, todayIso)}
         ${this._lead(a, todayIso)}
+        ${compact ? "" : this._strip(a, todayIso)}
         ${compact ? "" : this._yesterday(a)}
         ${compact ? "" : `<div class="cols">${this._weekColumn(L.this_week, a.this_week, todayIso)}${nextCol}</div>`}
         ${compact ? "" : this._recap(a)}
@@ -455,12 +545,17 @@ class UpasCard extends HTMLElement {
         ${this._news(a)}
         <div class="foot">${esc(L.foot)}</div>`;
     }
-    const dark = this._isDark();
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div class="paper ${dark ? "dark" : ""} ${compact ? "compact" : ""}">${inner}</div></ha-card>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div class="paper ${this._themeClass()} ${compact ? "compact" : ""}">${inner}</div></ha-card>`;
     this.shadowRoot.querySelectorAll(".btn").forEach((b) =>
       b.addEventListener("click", () => {
         this._cskip = (this._cskip || 0) + 1;
         this._cname = null;
+        this._render();
+      })
+    );
+    this.shadowRoot.querySelectorAll("[data-day]").forEach((el) =>
+      el.addEventListener("click", () => {
+        this._sel = this._sel === el.dataset.day ? null : el.dataset.day;
         this._render();
       })
     );
@@ -490,10 +585,12 @@ class UpasCard extends HTMLElement {
 const EDITOR_LABELS = {
   it: { title: "Titolo della testata (vuoto = dalle opzioni)", theme: "Tema", layout: "Aspetto", language: "Lingua", max_news: "Numero di notizie",
     show_news: "Mostra le notizie", show_trivia: "Mostra \u00abLo sapevi che?\u00bb e personaggio", show_highlights: "Mostra \u00abIn primo piano\u00bb",
+    show_tonight: "Mostra la fascia \u00abStasera in onda\u00bb", show_strip: "Mostra la striscia dei giorni",
     show_yesterday: "Mostra \u00abIeri in onda\u00bb", show_recap: "Mostra il riepilogo della settimana scorsa", spoiler_free: "Modalit\u00e0 senza spoiler",
     photos_path: "Cartella foto locali (facoltativa, es. /local/upas)", entity: "Entit\u00e0 (facoltativa)" },
   en: { title: "Masthead title (empty = from options)", theme: "Theme", layout: "Layout", language: "Language", max_news: "Number of news items",
     show_news: "Show news", show_trivia: "Show \u201cDid you know?\u201d and character", show_highlights: "Show \u201cIn the spotlight\u201d",
+    show_tonight: "Show the \u201cTonight\u201d band", show_strip: "Show the day strip",
     show_yesterday: "Show \u201cYesterday on air\u201d", show_recap: "Show last week's recap", spoiler_free: "Spoiler-free mode",
     photos_path: "Local photos folder (optional, e.g. /local/upas)", entity: "Entity (optional)" },
 };
@@ -518,12 +615,14 @@ class UpasCardEditor extends HTMLElement {
     const schema = [
       { name: "title", selector: { text: {} } },
       { name: "layout", selector: { select: { mode: "dropdown", options: [opt("full", lang === "en" ? "Full" : "Completa"), opt("compact", lang === "en" ? "Compact" : "Compatta")] } } },
-      { name: "theme", selector: { select: { mode: "dropdown", options: [opt("light", lang === "en" ? "Light" : "Chiaro"), opt("dark", lang === "en" ? "Dark" : "Scuro"), opt("auto", "Auto")] } } },
+      { name: "theme", selector: { select: { mode: "dropdown", options: [opt("light", lang === "en" ? "Light" : "Chiaro"), opt("dark", lang === "en" ? "Dark" : "Scuro"), opt("evening", lang === "en" ? "Evening" : "Serale"), opt("auto", "Auto")] } } },
       { name: "language", selector: { select: { mode: "dropdown", options: [opt("auto", "Auto"), opt("it", "Italiano"), opt("en", "English")] } } },
       { name: "max_news", selector: { number: { min: 1, max: 30, mode: "box" } } },
       { name: "show_news", selector: { boolean: {} } },
       { name: "show_trivia", selector: { boolean: {} } },
       { name: "show_highlights", selector: { boolean: {} } },
+      { name: "show_tonight", selector: { boolean: {} } },
+      { name: "show_strip", selector: { boolean: {} } },
       { name: "show_yesterday", selector: { boolean: {} } },
       { name: "show_recap", selector: { boolean: {} } },
       { name: "spoiler_free", selector: { boolean: {} } },
@@ -545,7 +644,7 @@ class UpasCardEditor extends HTMLElement {
     this._form.computeLabel = (s) => T[s.name] || s.name;
     this._form.data = {
       layout: "full", theme: "light", language: "auto", max_news: 6, show_news: true, show_trivia: true,
-      show_highlights: true, show_yesterday: true, show_recap: true, spoiler_free: false, ...this._config,
+      show_highlights: true, show_tonight: true, show_strip: true, show_yesterday: true, show_recap: true, spoiler_free: false, ...this._config,
     };
   }
 }

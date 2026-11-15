@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.0
+### English
+- **Card redesign**: "Tonight on air" band with air time, headline and live status (countdown, "On air now", "Aired"; "Not on air today" on break days).
+- **Day strip**: tap a weekday to read that day's plot (spoiler-free mode is respected).
+- **Evening theme** (`theme: evening`), bigger masthead with tagline, polished spacing.
+- New card options `show_tonight` and `show_strip` (also in the visual editor); previews updated.
+- No backend or entity changes.
+
+### Italiano
+- **Nuova grafica della card**: fascia «Stasera in onda» con orario, titolo e stato in tempo reale (conto alla rovescia, «In onda ora», «Andata in onda»; «Oggi non in onda» nei giorni di pausa).
+- **Striscia dei giorni**: tocca un giorno della settimana per leggerne la trama (rispetta la modalità senza spoiler).
+- **Tema serale** (`theme: evening`), testata più grande con sottotitolo, spaziature rifinite.
+- Nuove opzioni della card `show_tonight` e `show_strip` (anche nell'editor visivo); anteprime aggiornate.
+- Nessuna modifica al backend né alle entità.
+
 ## 1.1.0
 ### English
 - **Second plot source (fallback):** DiLei weekly articles are used when TV Sorrisi e Canzoni has no article for a week (articles discovered via Bing News; recent weeks only). The week reports its real source. This path is fail-soft and untested against the live site, enable debug logging for `custom_components.upas` to see it at work.
