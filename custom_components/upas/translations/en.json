@@ -96,12 +96,11 @@
   "issues": {
     "sources_unreachable": {
       "title": "Sources unreachable",
-      "description": "Plot and news sources have not responded for several updates. The integration keeps retrying; if it persists check Home Assistant's connection or open an issue on GitHub.",
       "fix_flow": {
         "step": {
           "confirm": {
             "title": "Retry now",
-            "description": "Press Submit to retry the sources right away."
+            "description": "Plot and news sources have not responded for several updates. The integration keeps retrying; if it persists check Home Assistant's connection or open an issue on GitHub. Press Submit to retry right away."
           }
         }
       }
